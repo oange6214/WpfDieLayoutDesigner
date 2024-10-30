@@ -6,16 +6,36 @@ namespace DieLayoutDesigner.Models;
 
 public class DieShape : ObservableObject
 {
-    private Point _topLeft;
+    #region Constructors
+
+    public DieShape()
+    {
+        Index = ++_counter;
+        IsVisible = true;
+    }
+
+    #endregion Constructors
+
+    #region Fields
+
+    private static int _counter = 0;
+    private Geometry? _data;
     private Size _dieSize;
     private Brush _fillColor;
+    private int _index;
     private bool _isSelected;
-    private Geometry? _data;
+    private bool _isVisible = true;
+    private string _name;
+    private Point _topLeft;
 
-    public Point TopLeft
+    #endregion Fields
+
+    #region Properties
+
+    public Geometry? Data
     {
-        get => _topLeft;
-        set => SetProperty(ref _topLeft, value);
+        get => _data;
+        set => SetProperty(ref _data, value);
     }
 
     public Size DieSize
@@ -30,15 +50,35 @@ public class DieShape : ObservableObject
         set => SetProperty(ref _fillColor, value);
     }
 
+    public int Index
+    {
+        get => _index;
+        set => SetProperty(ref _index, value);
+    }
+
     public bool IsSelected
     {
         get => _isSelected;
         set => SetProperty(ref _isSelected, value);
     }
 
-    public Geometry? Data
+    public bool IsVisible
     {
-        get => _data;
-        set => SetProperty(ref _data, value);
+        get => _isVisible;
+        set => SetProperty(ref _isVisible, value);
     }
+
+    public string Name
+    {
+        get => _name ?? $"矩形 {Index}";
+        set => SetProperty(ref _name, value);
+    }
+
+    public Point TopLeft
+    {
+        get => _topLeft;
+        set => SetProperty(ref _topLeft, value);
+    }
+
+    #endregion Properties
 }

@@ -48,15 +48,83 @@
 
     <Window.Resources>
         <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </Window.Resources>
 
     <Grid>
         <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200" />
+            <!--  圖層面板  -->
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <TabControl>
+        <!--  圖層面板  -->
+        <DockPanel
+            Grid.Column="0"
+            Background="#F0F0F0">
+            <TextBlock
+                Margin="10,5"
+                DockPanel.Dock="Top"
+                FontWeight="Bold"
+                Text="圖層" />
+
+            <ListView
+                DockPanel.Dock="Top"
+                ItemsSource="{Binding Shapes}"
+                SelectedItem="{Binding SelectedShape}">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <DockPanel>
+                            <!--  顯示/隱藏切換  -->
+                            <CheckBox
+                                Margin="0,0,5,0"
+                                IsChecked="{Binding IsVisible}"
+                                ToolTip="顯示/隱藏" />
+
+                            <!--  圖層名稱  -->
+                            <TextBlock>
+                                <Run Text="矩形 " />
+                                <Run Text="{Binding Index}" />
+                                <Run Text=" (" />
+                                <Run Text="{Binding DieSize.Width, StringFormat=F0}" />
+                                <Run Text="x" />
+                                <Run Text="{Binding DieSize.Height, StringFormat=F0}" />
+                                <Run Text=")" />
+                            </TextBlock>
+
+                            <!--  右鍵選單  -->
+                            <DockPanel.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem
+                                        Command="{Binding DataContext.RenameCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        Header="重新命名" />
+                                    <MenuItem
+                                        Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        Header="刪除" />
+                                    <Separator />
+                                    <MenuItem
+                                        Command="{Binding DataContext.BringToFrontCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        Header="移到最上層" />
+                                    <MenuItem
+                                        Command="{Binding DataContext.SendToBackCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        Header="移到最下層" />
+                                </ContextMenu>
+                            </DockPanel.ContextMenu>
+                        </DockPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </DockPanel>
+
+        <TabControl
+            Grid.Column="1"
+            Grid.ColumnSpan="2">
+
             <TabItem
                 x:Name="Tab1"
                 Header="Canvas 1">
@@ -107,7 +175,7 @@
 
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <controls:SelectableRectangle>
+                                    <controls:SelectableRectangle Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <controls:SelectableRectangle.ContextMenu>
                                             <ContextMenu>
                                                 <MenuItem
@@ -170,7 +238,11 @@
                 </ItemsControl>
             </TabItem>
         </TabControl>
-
-
     </Grid>
+
+
+
+
+
+
 </Window>
