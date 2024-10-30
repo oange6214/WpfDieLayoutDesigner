@@ -1,0 +1,5 @@
+# .gitignore 內容
+bin/
+obj/
+.vs/
+*.user
