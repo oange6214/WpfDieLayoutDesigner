@@ -43,18 +43,23 @@ public partial class SelectableRectangle : UserControl
 
             // 開始拖曳
             _isDragging = true;
-            _startPoint = e.GetPosition(this.Parent as UIElement);
+            _startPoint = e.GetPosition(Parent as UIElement);
             MainRectangle.CaptureMouse();
 
-            // 設置選取狀態
-            if (this.DataContext is DieShape currentShape)
+            //// 設置選取狀態
+            //if (DataContext is DieShape currentShape)
+            //{
+            //    // 獲取 ViewModel
+            //    if (DataContext != null &&
+            //        Window.GetWindow(this)?.DataContext is MainWindowViewModel viewModel)
+            //    {
+            //        viewModel.SelectedShape = currentShape;
+            //    }
+            //}
+
+            if (Window.GetWindow(this)?.DataContext is MainWindowViewModel viewModel)
             {
-                // 獲取 ViewModel
-                if (this.DataContext != null &&
-                    Window.GetWindow(this)?.DataContext is MainWindowViewModel viewModel)
-                {
-                    viewModel.SelectedShape = currentShape;
-                }
+                viewModel.SelectShape(shape);  // 使用更新後的 SelectShape 方法
             }
         }
     }

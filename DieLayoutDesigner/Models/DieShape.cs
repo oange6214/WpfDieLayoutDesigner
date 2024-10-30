@@ -18,6 +18,13 @@ public class DieShape : ObservableObject
 
     #region Fields
 
+    private int _zIndex;
+    public int ZIndex
+    {
+        get => _zIndex;
+        set => SetProperty(ref _zIndex, value);
+    }
+
     private static int _counter = 0;
     private Geometry? _data;
     private Size _dieSize;

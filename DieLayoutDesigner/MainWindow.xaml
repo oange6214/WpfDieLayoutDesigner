@@ -170,6 +170,7 @@
                                 <Style TargetType="ContentPresenter">
                                     <Setter Property="Canvas.Left" Value="{Binding TopLeft.X}" />
                                     <Setter Property="Canvas.Top" Value="{Binding TopLeft.Y}" />
+                                    <Setter Property="Panel.ZIndex" Value="{Binding ZIndex}" />
                                 </Style>
                             </ItemsControl.ItemContainerStyle>
 
@@ -227,6 +228,7 @@
                         <Style TargetType="ContentPresenter">
                             <Setter Property="Canvas.Left" Value="{Binding TopLeft.X}" />
                             <Setter Property="Canvas.Top" Value="{Binding TopLeft.Y}" />
+                            <Setter Property="Panel.ZIndex" Value="{Binding ZIndex}" />
                         </Style>
                     </ItemsControl.ItemContainerStyle>
 

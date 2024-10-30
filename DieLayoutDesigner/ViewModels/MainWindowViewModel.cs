@@ -10,6 +10,7 @@ namespace DieLayoutDesigner.ViewModels;
 
 public class MainWindowViewModel : ObservableObject
 {
+
     private ObservableCollection<DieShape> _shapes = [];
 
     public ObservableCollection<DieShape> Shapes
@@ -105,6 +106,8 @@ public class MainWindowViewModel : ObservableObject
         double left = Math.Min(end.X, start.X);
         double top = Math.Min(end.Y, start.Y);
 
+        _currentMaxZIndex++;
+
         return new DieShape
         {
             TopLeft = new Point(left, top),
@@ -113,14 +116,16 @@ public class MainWindowViewModel : ObservableObject
             FillColor = new SolidColorBrush(Color.FromRgb(
                 (byte)Random.Shared.Next(256),
                 (byte)Random.Shared.Next(256),
-                (byte)Random.Shared.Next(256)))
+                (byte)Random.Shared.Next(256))),
+            ZIndex = _currentMaxZIndex
         };
     }
-
 
     #endregion
 
     #region Shape interaction
+
+    private int _currentMaxZIndex = 0;
 
     private DieShape? _selectedShape;
 
@@ -141,11 +146,21 @@ public class MainWindowViewModel : ObservableObject
 
     public ICommand SelectShapeCommand { get; }
 
-    private void SelectShape(DieShape? shape)
+    public void SelectShape(DieShape? shape)
     {
         if (shape != null)
         {
             SelectedShape = shape;
+            BringToFront(shape);  // 選取時自動置頂
+        }
+    }
+
+    private void BringToFront(DieShape shape)
+    {
+        if (shape != null)
+        {
+            _currentMaxZIndex++;
+            shape.ZIndex = _currentMaxZIndex;
         }
     }
 
