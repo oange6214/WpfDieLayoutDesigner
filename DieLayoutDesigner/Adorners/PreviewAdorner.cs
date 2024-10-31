@@ -2,7 +2,7 @@
 using System.Windows.Documents;
 using System.Windows.Media;
 
-namespace DieLayoutDesigner.Controls;
+namespace DieLayoutDesigner.Adorners;
 
 public class PreviewAdorner : Adorner
 {
@@ -13,9 +13,9 @@ public class PreviewAdorner : Adorner
         _startPoint = startPoint;
         _currentPoint = startPoint;
 
-        _fillBrush = new SolidColorBrush(Colors.Blue) 
-        { 
-            Opacity = 0.3 
+        _fillBrush = new SolidColorBrush(Colors.Blue)
+        {
+            Opacity = 0.3
         };
         _strokePen = new Pen(Brushes.Black, 1)
         {

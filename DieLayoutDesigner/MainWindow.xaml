@@ -134,64 +134,75 @@
                         Margin="5"
                         DockPanel.Dock="Top"
                         Text="{Binding StatusText}" />
-                    <!--  綁定到 ViewModel 的狀態文字  -->
 
-                    <Canvas
-                        x:Name="DrawingCanvas"
-                        Background="Transparent">
+                    <AdornerDecorator>
+                        <Canvas
+                            x:Name="DrawingCanvas"
+                            Background="Transparent">
+                            <i:Interaction.Behaviors>
+                                <behaviors:MousePositionBehavior
+                                    MouseDownCommand="{Binding StartDrawingCommand}"
+                                    MouseMoveCommand="{Binding DrawingCommand}"
+                                    MouseUpCommand="{Binding EndDrawingCommand}" />
+                            </i:Interaction.Behaviors>
 
-                        <i:Interaction.Behaviors>
-                            <behaviors:MousePositionBehavior
-                                MouseDownCommand="{Binding StartDrawingCommand}"
-                                MouseMoveCommand="{Binding DrawingCommand}"
-                                MouseUpCommand="{Binding EndDrawingCommand}" />
-                        </i:Interaction.Behaviors>
+                            <ItemsControl
+                                Panel.ZIndex="1"
+                                ItemsSource="{Binding Shapes}"
+                                RenderOptions.BitmapScalingMode="HighQuality"
+                                RenderOptions.EdgeMode="Aliased"
+                                UseLayoutRounding="True">
 
-                        <!--  Shapes  -->
-                        <ItemsControl
-                            Panel.ZIndex="1"
-                            ItemsSource="{Binding Shapes}"
-                            RenderOptions.BitmapScalingMode="HighQuality"
-                            RenderOptions.EdgeMode="Aliased"
-                            UseLayoutRounding="True">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <Canvas />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
+                                <ItemsControl.Resources>
+                                    <ContextMenu x:Key="ShapeContextMenu">
+                                        <MenuItem
+                                            Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            Header="刪除" />
+                                        <MenuItem
+                                            Command="{Binding DataContext.CopyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            Header="複製" />
+                                        <MenuItem
+                                            Command="{Binding DataContext.BringToFrontCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            Header="移到最上層" />
+                                        <MenuItem
+                                            Command="{Binding DataContext.SendToBackCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            Header="移到最下層" />
+                                    </ContextMenu>
+                                </ItemsControl.Resources>
 
-                            <ItemsControl.ItemContainerStyle>
-                                <Style TargetType="ContentPresenter">
-                                    <Setter Property="Canvas.Left" Value="{Binding TopLeft.X}" />
-                                    <Setter Property="Canvas.Top" Value="{Binding TopLeft.Y}" />
-                                    <Setter Property="Panel.ZIndex" Value="{Binding ZIndex}" />
-                                </Style>
-                            </ItemsControl.ItemContainerStyle>
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <Canvas IsItemsHost="True" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
 
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <controls:SelectableRectangle Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                        <controls:SelectableRectangle.ContextMenu>
-                                            <ContextMenu>
-                                                <MenuItem
-                                                    Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    Header="刪除" />
-                                                <MenuItem
-                                                    Command="{Binding DataContext.CopyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    Header="複製" />
-                                                <MenuItem
-                                                    Command="{Binding DataContext.BringToFrontCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    Header="移到最上層" />
-                                                <MenuItem
-                                                    Command="{Binding DataContext.SendToBackCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    Header="移到最下層" />
-                                            </ContextMenu>
-                                        </controls:SelectableRectangle.ContextMenu>
-                                    </controls:SelectableRectangle>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </Canvas>
+                                <ItemsControl.ItemContainerStyle>
+                                    <Style TargetType="ContentPresenter">
+                                        <Setter Property="Canvas.Left" Value="{Binding TopLeft.X}" />
+                                        <Setter Property="Canvas.Top" Value="{Binding TopLeft.Y}" />
+                                        <Setter Property="Panel.ZIndex" Value="{Binding ZIndex}" />
+                                    </Style>
+                                </ItemsControl.ItemContainerStyle>
+
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Rectangle
+                                            Width="{Binding DieSize.Width}"
+                                            Height="{Binding DieSize.Height}"
+                                            ContextMenu="{StaticResource ShapeContextMenu}"
+                                            Cursor="SizeAll"
+                                            Fill="{Binding FillColor}">
+                                            <i:Interaction.Behaviors>
+                                                <behaviors:ShapeEditBehavior IsSelected="{Binding IsSelected}" />
+                                            </i:Interaction.Behaviors>
+                                        </Rectangle>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Canvas>
+                    </AdornerDecorator>
+
+
                 </DockPanel>
 
             </TabItem>

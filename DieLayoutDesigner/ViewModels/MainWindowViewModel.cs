@@ -8,180 +8,61 @@ using DieLayoutDesigner.MvvmToolKit.Input;
 using DieLayoutDesigner.Controls;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using DieLayoutDesigner.Enums;
+using DieLayoutDesigner.Managers;
+using System.Diagnostics;
 
 namespace DieLayoutDesigner.ViewModels;
 
-public class MainWindowViewModel : ObservableObject
+public class MainWindowViewModel : ObservableObject, IDisposable
 {
+    private readonly ShapeManager _shapeManager;
+    private readonly PreviewManager _previewManager;
+    private bool _disposed;
 
-    private ObservableCollection<DieShape> _shapes = [];
-
-    public ObservableCollection<DieShape> Shapes
-    {
-        get => _shapes;
-        set => SetProperty(ref _shapes, value);
-    }
-
-    public MainWindowViewModel()
-    {
-        _shapes = new ObservableCollection<DieShape>();
-
-        StartDrawingCommand = new RelayCommand<Point>(StartDrawing);
-        DrawingCommand = new RelayCommand<Point>(Drawing);
-        EndDrawingCommand = new RelayCommand<Point>(EndDrawing);
-        SelectShapeCommand = new RelayCommand<DieShape>(SelectShape);
-        CanvasClickCommand = new RelayCommand<Point>(ClearSelection);
-        DeleteCommand = new RelayCommand(DeleteSelected, () => SelectedShape != null);
-        CancelCommand = new RelayCommand(Cancel);
-        SelectAllCommand = new RelayCommand(SelectAll);
-        MoveCommand = new RelayCommand<string>(MoveSelected);
-    }
-
-
-    #region Mouse Events
-
-
-    private Point _startPoint;
-    private bool _isDrawing;
-
-    public ICommand StartDrawingCommand { get; }
-    public ICommand DrawingCommand { get; }
-    public ICommand EndDrawingCommand { get; }
-    public ICommand CanvasClickCommand { get; }
-
-    private void StartDrawing(Point point)
-    {
-        if (Application.Current.MainWindow?.Content is FrameworkElement rootElement)
-        {
-            var canvas = rootElement.FindName("DrawingCanvas") as Canvas;
-            if (canvas != null)
-            {
-                _isDrawing = true;
-                _startPoint = point;
-
-                var adornerLayer = AdornerLayer.GetAdornerLayer(canvas);
-                _previewAdorner = new PreviewAdorner(canvas, point);
-                adornerLayer?.Add(_previewAdorner);
-            }
-        }
-    }
-
-    private void Drawing(Point currentPoint)
-    {
-        if (_isDrawing && _previewAdorner != null)
-        {
-            _previewAdorner.UpdatePosition(currentPoint);
-        }
-    }
-
-    private void EndDrawing(Point endPoint)
-    {
-        if (_isDrawing && _previewAdorner != null)
-        {
-            StatusText = "點擊空白處開始繪製，或點擊圖形進行編輯";
-
-            // 計算移動距離
-            double width = Math.Abs(endPoint.X - _startPoint.X);
-            double height = Math.Abs(endPoint.Y - _startPoint.Y);
-
-            // 如果大小足夠，創建實際的形狀
-            if (width > 5 && height > 5)
-            {
-                var newShape = CreateShape(_startPoint, endPoint);
-                Shapes.Add(newShape);
-            }
-
-            // 移除預覽
-
-            if (Application.Current.MainWindow?.Content is FrameworkElement rootElement)
-            {
-                var canvas = rootElement.FindName("DrawingCanvas") as Canvas;
-
-                var adornerLayer = AdornerLayer.GetAdornerLayer(canvas);
-                adornerLayer?.Remove(_previewAdorner);
-                _previewAdorner = null;
-                _isDrawing = false;
-            }
-        }
-    }
-
-    private DieShape CreateShape(Point start, Point end)
-    {
-        double width = Math.Abs(end.X - start.X);
-        double height = Math.Abs(end.Y - start.Y);
-        double left = Math.Min(end.X, start.X);
-        double top = Math.Min(end.Y, start.Y);
-
-        _currentMaxZIndex++;
-
-        return new DieShape
-        {
-            TopLeft = new Point(left, top),
-            DieSize = new Size(width, height),
-            Data = new RectangleGeometry(new Rect(0, 0, width, height)),
-            FillColor = new SolidColorBrush(Color.FromRgb(
-                (byte)Random.Shared.Next(256),
-                (byte)Random.Shared.Next(256),
-                (byte)Random.Shared.Next(256))),
-            ZIndex = _currentMaxZIndex
-        };
-    }
-
-    #endregion
-
-    #region Shape interaction
-
-    private PreviewAdorner? _previewAdorner;
-
-    private int _currentMaxZIndex = 0;
+    #region Properties
 
     private DieShape? _selectedShape;
+    private EditMode _currentMode;
+    private Point _startPoint;
+    private string _statusText = "點擊空白處開始繪製，或點擊圖形進行編輯";
+
+    public ObservableCollection<DieShape> Shapes => _shapeManager.Shapes;
 
     public DieShape? SelectedShape
     {
         get => _selectedShape;
         set
         {
+            if (value == _selectedShape) return;
+
             if (_selectedShape != null)
                 _selectedShape.IsSelected = false;
 
             SetProperty(ref _selectedShape, value);
 
             if (_selectedShape != null)
+            {
                 _selectedShape.IsSelected = true;
+                _shapeManager.BringToFront(_selectedShape);
+            }
+
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 
-    public ICommand SelectShapeCommand { get; }
-
-    public void SelectShape(DieShape? shape)
+    public EditMode CurrentMode
     {
-        if (shape != null)
+        get => _currentMode;
+        set
         {
-            SelectedShape = shape;
-            BringToFront(shape);  // 選取時自動置頂
+            if (SetProperty(ref _currentMode, value))
+            {
+                UpdateStatusText();
+            }
         }
     }
 
-    private void BringToFront(DieShape shape)
-    {
-        if (shape != null)
-        {
-            _currentMaxZIndex++;
-            shape.ZIndex = _currentMaxZIndex;
-        }
-    }
-
-    private void ClearSelection(Point point)
-    {
-        SelectedShape = null;
-    }
-
-    #endregion
-
-    #region State Tip
-
-    private string _statusText = "點擊空白處開始繪製，或點擊圖形進行編輯";
     public string StatusText
     {
         get => _statusText;
@@ -190,60 +71,216 @@ public class MainWindowViewModel : ObservableObject
 
     #endregion
 
-    #region Ux interactions
+    #region Commands
 
-    public ICommand DeleteCommand { get; }
-    public ICommand CancelCommand { get; }
-    public ICommand SelectAllCommand { get; }
-    public ICommand MoveCommand { get; }
+    public ICommand StartDrawingCommand { get; private set; }
+    public ICommand DrawingCommand { get; private set; }
+    public ICommand EndDrawingCommand { get; private set; }
+    public ICommand SelectShapeCommand { get; private set; }
+    public ICommand CanvasClickCommand { get; private set; }
+    public ICommand DeleteCommand { get; private set; }
+    public ICommand CancelCommand { get; private set; }
+    public ICommand SelectAllCommand { get; private set; }
+    public ICommand MoveCommand { get; private set; }
+
+    #endregion
+
+    public MainWindowViewModel()
+    {
+        _shapeManager = new ShapeManager();
+        _previewManager = new PreviewManager();
+        InitializeCommands();
+    }
+
+    private void InitializeCommands()
+    {
+        StartDrawingCommand = new RelayCommand<Point>(StartDrawing);
+        DrawingCommand = new RelayCommand<Point>(Drawing);
+        EndDrawingCommand = new RelayCommand<Point>(EndDrawing);
+        SelectShapeCommand = new RelayCommand<DieShape>(SelectShape);
+        CanvasClickCommand = new RelayCommand<Point>(ClearSelection);
+        DeleteCommand = new RelayCommand(DeleteSelected, CanDeleteSelected);
+        CancelCommand = new RelayCommand(Cancel);
+        SelectAllCommand = new RelayCommand(SelectAll);
+        MoveCommand = new RelayCommand<string>(MoveSelected, CanMoveSelected);
+    }
+
+    #region Command Methods
+
+    private void StartDrawing(Point point)
+    {
+        try
+        {
+            if (Application.Current.MainWindow?.Content is not FrameworkElement rootElement)
+            {
+                throw new InvalidOperationException("Cannot find root element");
+            }
+
+            var canvas = rootElement.FindName("DrawingCanvas") as Canvas
+                ?? throw new InvalidOperationException("Cannot find canvas");
+
+            CurrentMode = EditMode.Drawing;
+            _startPoint = point;
+            _previewManager.StartPreview(canvas, point);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error starting drawing: {ex.Message}");
+            CurrentMode = EditMode.None;
+        }
+    }
+
+    private void Drawing(Point currentPoint)
+    {
+        if (CurrentMode == EditMode.Drawing)
+        {
+            _previewManager.UpdatePreview(currentPoint);
+        }
+    }
+
+    private void EndDrawing(Point endPoint)
+    {
+        if (CurrentMode == EditMode.Drawing)
+        {
+            try
+            {
+                var canvas = GetDrawingCanvas();
+
+                double width = Math.Abs(endPoint.X - _startPoint.X);
+                double height = Math.Abs(endPoint.Y - _startPoint.Y);
+
+                if (width > 5 && height > 5)
+                {
+                    SelectedShape = _shapeManager.CreateShape(_startPoint, endPoint);
+                }
+
+                _previewManager.EndPreview(canvas);
+                CurrentMode = EditMode.None;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error ending drawing: {ex.Message}");
+                CurrentMode = EditMode.None;
+            }
+        }
+    }
+
+    public void SelectShape(DieShape? shape)
+    {
+        if (shape != null)
+        {
+            SelectedShape = shape;
+        }
+    }
+
+    private void ClearSelection(Point point)
+    {
+        SelectedShape = null;
+    }
+
+    private bool CanDeleteSelected() => SelectedShape != null;
 
     private void DeleteSelected()
     {
         if (SelectedShape != null)
         {
-            Shapes.Remove(SelectedShape);
+            _shapeManager.DeleteShape(SelectedShape);
             SelectedShape = null;
         }
     }
 
     private void Cancel()
     {
-        if (_isDrawing)
+        if (CurrentMode == EditMode.Drawing)
         {
-            _isDrawing = false;
+            try
+            {
+                var canvas = GetDrawingCanvas();
+                _previewManager.EndPreview(canvas);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error cancelling drawing: {ex.Message}");
+            }
         }
+        CurrentMode = EditMode.None;
         SelectedShape = null;
     }
 
     private void SelectAll()
     {
-        // 需要修改為支援多選
-        // ...
+        // TODO: Implement multi-select
     }
+
+    private bool CanMoveSelected(string direction) => SelectedShape != null;
 
     private void MoveSelected(string direction)
     {
-        if (SelectedShape != null)
+        if (SelectedShape == null) return;
+
+        var delta = 1;
+        var currentPoint = SelectedShape.TopLeft;
+
+        var newPoint = direction switch
         {
-            var delta = 1;
-            switch (direction)
-            {
-                case "Left":
-                    SelectedShape.TopLeft = new Point(SelectedShape.TopLeft.X - delta, SelectedShape.TopLeft.Y);
-                    break;
-                case "Right":
-                    SelectedShape.TopLeft = new Point(SelectedShape.TopLeft.X + delta, SelectedShape.TopLeft.Y);
-                    break;
-                case "Up":
-                    SelectedShape.TopLeft = new Point(SelectedShape.TopLeft.X, SelectedShape.TopLeft.Y - delta);
-                    break;
-                case "Down":
-                    SelectedShape.TopLeft = new Point(SelectedShape.TopLeft.X, SelectedShape.TopLeft.Y + delta);
-                    break;
-            }
-        }
+            "Left" => new Point(currentPoint.X - delta, currentPoint.Y),
+            "Right" => new Point(currentPoint.X + delta, currentPoint.Y),
+            "Up" => new Point(currentPoint.X, currentPoint.Y - delta),
+            "Down" => new Point(currentPoint.X, currentPoint.Y + delta),
+            _ => currentPoint
+        };
+
+        SelectedShape.TopLeft = newPoint;
     }
 
     #endregion
 
+    #region Helper Methods
+
+    private void UpdateStatusText()
+    {
+        StatusText = CurrentMode switch
+        {
+            EditMode.None => "點擊空白處開始繪製，或點擊圖形進行編輯",
+            EditMode.Drawing => "拖曳以繪製圖形",
+            EditMode.Moving => "拖曳以移動圖形",
+            EditMode.Resizing => "拖曳以調整大小",
+            _ => StatusText
+        };
+    }
+
+    private Canvas GetDrawingCanvas()
+    {
+        if (Application.Current.MainWindow?.Content is not FrameworkElement rootElement)
+        {
+            throw new InvalidOperationException("Cannot find root element");
+        }
+
+        return rootElement.FindName("DrawingCanvas") as Canvas
+            ?? throw new InvalidOperationException("Cannot find canvas");
+    }
+
+    #endregion
+
+    #region IDisposable Implementation
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _previewManager.Dispose();
+            }
+            _disposed = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    #endregion
 }
