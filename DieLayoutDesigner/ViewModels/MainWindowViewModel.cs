@@ -77,7 +77,7 @@ public class MainWindowViewModel : ObservableObject, IDisposable
     public ICommand DrawingCommand { get; private set; }
     public ICommand EndDrawingCommand { get; private set; }
     public ICommand SelectShapeCommand { get; private set; }
-    public ICommand CanvasClickCommand { get; private set; }
+    public ICommand ClearSelectionCommand { get; private set; }
     public ICommand DeleteCommand { get; private set; }
     public ICommand CancelCommand { get; private set; }
     public ICommand SelectAllCommand { get; private set; }
@@ -94,11 +94,11 @@ public class MainWindowViewModel : ObservableObject, IDisposable
 
     private void InitializeCommands()
     {
+        ClearSelectionCommand = new RelayCommand<Point>(ClearSelection);
         StartDrawingCommand = new RelayCommand<Point>(StartDrawing);
         DrawingCommand = new RelayCommand<Point>(Drawing);
         EndDrawingCommand = new RelayCommand<Point>(EndDrawing);
         SelectShapeCommand = new RelayCommand<DieShape>(SelectShape);
-        CanvasClickCommand = new RelayCommand<Point>(ClearSelection);
         DeleteCommand = new RelayCommand(DeleteSelected, CanDeleteSelected);
         CancelCommand = new RelayCommand(Cancel);
         SelectAllCommand = new RelayCommand(SelectAll);
@@ -175,7 +175,10 @@ public class MainWindowViewModel : ObservableObject, IDisposable
 
     private void ClearSelection(Point point)
     {
-        SelectedShape = null;
+        if (CurrentMode != EditMode.Drawing) 
+        {
+            SelectedShape = null;
+        }
     }
 
     private bool CanDeleteSelected() => SelectedShape != null;

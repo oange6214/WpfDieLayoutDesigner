@@ -1,7 +1,11 @@
-﻿using Microsoft.Xaml.Behaviors;
+﻿using DieLayoutDesigner.Controls;
+using Microsoft.Xaml.Behaviors;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Shapes;
 
 namespace DieLayoutDesigner.Behaviors;
 
@@ -46,6 +50,17 @@ public class MousePositionBehavior : Behavior<Canvas>
         set => SetValue(MouseUpCommandProperty, value);
     }
 
+    public static readonly DependencyProperty ClearSelectionCommandProperty =
+        DependencyProperty.Register(nameof(ClearSelectionCommand), typeof(ICommand),
+            typeof(MousePositionBehavior));
+
+    public ICommand ClearSelectionCommand
+    {
+        get => (ICommand)GetValue(ClearSelectionCommandProperty);
+        set => SetValue(ClearSelectionCommandProperty, value);
+    }
+
+
     protected override void OnAttached()
     {
         base.OnAttached();
@@ -64,11 +79,28 @@ public class MousePositionBehavior : Behavior<Canvas>
 
     private void OnMouseDown(object sender, MouseButtonEventArgs e)
     {
+
+        var position = e.GetPosition(AssociatedObject);
+        var hitTarget = e.OriginalSource as DependencyObject;
+
+        var isControlHit = hitTarget is Rectangle ||
+                          hitTarget is Thumb ||
+                          VisualTreeHelper.GetParent(hitTarget) is SelectableRectangle;
+
+        if (!isControlHit)
+        {
+            if (ClearSelectionCommand?.CanExecute(null) == true)
+            {
+                ClearSelectionCommand.Execute(position);
+            }
+        }
+
         if (MouseDownCommand?.CanExecute(null) == true)
         {
-            var position = e.GetPosition(AssociatedObject);
             MouseDownCommand.Execute(position);
         }
+
+        e.Handled = true;
     }
 
     private void OnMouseMove(object sender, MouseEventArgs e)

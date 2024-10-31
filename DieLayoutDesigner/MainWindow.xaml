@@ -141,6 +141,7 @@
                             Background="Transparent">
                             <i:Interaction.Behaviors>
                                 <behaviors:MousePositionBehavior
+                                    ClearSelectionCommand="{Binding ClearSelectionCommand}"
                                     MouseDownCommand="{Binding StartDrawingCommand}"
                                     MouseMoveCommand="{Binding DrawingCommand}"
                                     MouseUpCommand="{Binding EndDrawingCommand}" />
