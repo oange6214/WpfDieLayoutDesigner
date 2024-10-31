@@ -1,4 +1,5 @@
-﻿using Microsoft.Xaml.Behaviors;
+﻿using DieLayoutDesigner.Controls;
+using Microsoft.Xaml.Behaviors;
 using System.Windows;
 using System.Windows.Input;
 
@@ -6,8 +7,14 @@ namespace DieLayoutDesigner.Behaviors;
 
 public class MouseBehavior : Behavior<UIElement>
 {
-    public static readonly DependencyProperty MouseDownCommandProperty =
-        DependencyProperty.Register(nameof(MouseDownCommand), typeof(ICommand), typeof(MouseBehavior));
+
+    public static readonly DependencyProperty MouseDownCommandProperty = DependencyProperty.Register(
+        nameof(MouseDownCommand),
+        typeof(ICommand),
+        typeof(MouseBehavior)
+    );
+
+    private PreviewAdorner _previewAdorner;
 
     public ICommand MouseDownCommand
     {
@@ -35,4 +42,5 @@ public class MouseBehavior : Behavior<UIElement>
             MouseDownCommand.Execute(position);
         }
     }
+
 }

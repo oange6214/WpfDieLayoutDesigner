@@ -5,6 +5,9 @@ using System.Windows.Input;
 using System.Windows.Media;
 using DieLayoutDesigner.Models;
 using DieLayoutDesigner.MvvmToolKit.Input;
+using DieLayoutDesigner.Controls;
+using System.Windows.Controls;
+using System.Windows.Documents;
 
 namespace DieLayoutDesigner.ViewModels;
 
@@ -40,40 +43,40 @@ public class MainWindowViewModel : ObservableObject
 
     private Point _startPoint;
     private bool _isDrawing;
-    private DieShape? _previewShape;
 
     public ICommand StartDrawingCommand { get; }
     public ICommand DrawingCommand { get; }
     public ICommand EndDrawingCommand { get; }
     public ICommand CanvasClickCommand { get; }
 
-    public DieShape? PreviewShape
-    {
-        get => _previewShape;
-        set => SetProperty(ref _previewShape, value);
-    }
-
     private void StartDrawing(Point point)
     {
-        StatusText = "拖曳滑鼠來繪製圖形";
+        if (Application.Current.MainWindow?.Content is FrameworkElement rootElement)
+        {
+            var canvas = rootElement.FindName("DrawingCanvas") as Canvas;
+            if (canvas != null)
+            {
+                _isDrawing = true;
+                _startPoint = point;
 
-        SelectedShape = null;
-        _startPoint = point;
-        _isDrawing = true;
+                var adornerLayer = AdornerLayer.GetAdornerLayer(canvas);
+                _previewAdorner = new PreviewAdorner(canvas, point);
+                adornerLayer?.Add(_previewAdorner);
+            }
+        }
     }
 
     private void Drawing(Point currentPoint)
     {
-        if (_isDrawing)
+        if (_isDrawing && _previewAdorner != null)
         {
-            StatusText = $"目前大小: {PreviewShape?.DieSize.Width:F0} x {PreviewShape?.DieSize.Height:F0}";
-            PreviewShape = CreateShape(_startPoint, currentPoint);
+            _previewAdorner.UpdatePosition(currentPoint);
         }
     }
 
     private void EndDrawing(Point endPoint)
     {
-        if (_isDrawing)
+        if (_isDrawing && _previewAdorner != null)
         {
             StatusText = "點擊空白處開始繪製，或點擊圖形進行編輯";
 
@@ -81,21 +84,24 @@ public class MainWindowViewModel : ObservableObject
             double width = Math.Abs(endPoint.X - _startPoint.X);
             double height = Math.Abs(endPoint.Y - _startPoint.Y);
 
-            // 如果移動距離太小，就不創建形狀
-            if (width < 5 || height < 5)  // 可以根據需求調整這個最小值
+            // 如果大小足夠，創建實際的形狀
+            if (width > 5 && height > 5)
             {
-                PreviewShape = null;
-                _isDrawing = false;
-                return;
+                var newShape = CreateShape(_startPoint, endPoint);
+                Shapes.Add(newShape);
             }
 
-            var newShape = CreateShape(_startPoint, endPoint);
-            Shapes.Add(newShape);
-            PreviewShape = null;
-            _isDrawing = false;
+            // 移除預覽
 
-            // 自動選取新創建的形狀
-            SelectedShape = newShape;
+            if (Application.Current.MainWindow?.Content is FrameworkElement rootElement)
+            {
+                var canvas = rootElement.FindName("DrawingCanvas") as Canvas;
+
+                var adornerLayer = AdornerLayer.GetAdornerLayer(canvas);
+                adornerLayer?.Remove(_previewAdorner);
+                _previewAdorner = null;
+                _isDrawing = false;
+            }
         }
     }
 
@@ -124,6 +130,8 @@ public class MainWindowViewModel : ObservableObject
     #endregion
 
     #region Shape interaction
+
+    private PreviewAdorner? _previewAdorner;
 
     private int _currentMaxZIndex = 0;
 
@@ -203,7 +211,6 @@ public class MainWindowViewModel : ObservableObject
         if (_isDrawing)
         {
             _isDrawing = false;
-            PreviewShape = null;
         }
         SelectedShape = null;
     }
@@ -218,7 +225,7 @@ public class MainWindowViewModel : ObservableObject
     {
         if (SelectedShape != null)
         {
-            var delta = 1; // 或其他合適的值
+            var delta = 1;
             switch (direction)
             {
                 case "Left":
@@ -227,14 +234,12 @@ public class MainWindowViewModel : ObservableObject
                 case "Right":
                     SelectedShape.TopLeft = new Point(SelectedShape.TopLeft.X + delta, SelectedShape.TopLeft.Y);
                     break;
-
                 case "Up":
                     SelectedShape.TopLeft = new Point(SelectedShape.TopLeft.X, SelectedShape.TopLeft.Y - delta);
                     break;
                 case "Down":
                     SelectedShape.TopLeft = new Point(SelectedShape.TopLeft.X, SelectedShape.TopLeft.Y + delta);
                     break;
-                    // ... Up/Down
             }
         }
     }

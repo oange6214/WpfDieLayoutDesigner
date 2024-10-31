@@ -1,13 +1,12 @@
-﻿using System.Windows;
+﻿using DieLayoutDesigner.Models;
+using DieLayoutDesigner.ViewModels;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Shapes;
-using DieLayoutDesigner.Models;
-using DieLayoutDesigner.ViewModels;
 
 namespace DieLayoutDesigner.Controls;
 
-// Controls/SelectableRectangle.xaml.cs
 public partial class SelectableRectangle : UserControl
 {
     private Point _startPoint;
@@ -46,42 +45,31 @@ public partial class SelectableRectangle : UserControl
             _startPoint = e.GetPosition(Parent as UIElement);
             MainRectangle.CaptureMouse();
 
-            //// 設置選取狀態
-            //if (DataContext is DieShape currentShape)
-            //{
-            //    // 獲取 ViewModel
-            //    if (DataContext != null &&
-            //        Window.GetWindow(this)?.DataContext is MainWindowViewModel viewModel)
-            //    {
-            //        viewModel.SelectedShape = currentShape;
-            //    }
-            //}
-
             if (Window.GetWindow(this)?.DataContext is MainWindowViewModel viewModel)
             {
-                viewModel.SelectShape(shape);  // 使用更新後的 SelectShape 方法
+                viewModel.SelectShape(shape); 
             }
         }
     }
 
     private void OnRectangleMouseMove(object sender, MouseEventArgs e)
     {
-        if (_isDragging)
+        if (!_isDragging) 
+            return;
+
+        var shape = DataContext as DieShape;
+        if (shape != null)
         {
-            var shape = DataContext as DieShape;
-            if (shape != null)
-            {
-                var currentPoint = e.GetPosition(this.Parent as UIElement);
-                var delta = currentPoint - _startPoint;
+            var currentPoint = e.GetPosition(this.Parent as UIElement);
+            var delta = currentPoint - _startPoint;
 
-                // 更新位置
-                shape.TopLeft = new Point(
-                    shape.TopLeft.X + delta.X,
-                    shape.TopLeft.Y + delta.Y
-                );
+            // 更新位置
+            shape.TopLeft = new Point(
+                shape.TopLeft.X + delta.X,
+                shape.TopLeft.Y + delta.Y
+            );
 
-                _startPoint = currentPoint;
-            }
+            _startPoint = currentPoint;
         }
     }
 
@@ -117,7 +105,6 @@ public partial class SelectableRectangle : UserControl
 
             if (shape != null)
             {
-                // 保存原始值以便驗證
                 var originalTopLeft = shape.TopLeft;
                 var originalSize = shape.DieSize;
 
