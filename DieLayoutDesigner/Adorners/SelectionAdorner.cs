@@ -3,6 +3,7 @@ using System.Windows.Documents;
 using System.Windows.Media;
 
 namespace DieLayoutDesigner.Adorners;
+
 public class SelectionAdorner : Adorner
 {
     public SelectionAdorner(UIElement adornedElement) : base(adornedElement)

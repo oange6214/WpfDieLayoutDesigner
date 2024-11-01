@@ -178,68 +178,89 @@
                         Text="{Binding StatusText}" />
 
                     <AdornerDecorator>
-                        <Canvas
-                            x:Name="DrawingCanvas"
-                            Background="Transparent">
-                            <i:Interaction.Behaviors>
-                                <behaviors:MousePositionBehavior
-                                    ClearSelectionCommand="{Binding ClearSelectionCommand}"
-                                    MouseDownCommand="{Binding StartDrawingCommand}"
-                                    MouseMoveCommand="{Binding DrawingCommand}"
-                                    MouseUpCommand="{Binding EndDrawingCommand}" />
-                            </i:Interaction.Behaviors>
+                        <ScrollViewer
+                            HorizontalScrollBarVisibility="Auto"
+                            VerticalScrollBarVisibility="Auto">
+                            <Canvas
+                                x:Name="DrawingCanvas"
+                                Background="Blue">
+                                <i:Interaction.Behaviors>
+                                    <behaviors:MousePositionBehavior
+                                        MouseDownCommand="{Binding StartDrawingCommand}"
+                                        MouseMoveCommand="{Binding DrawingCommand}"
+                                        MouseUpCommand="{Binding EndDrawingCommand}"
+                                        ScaleValue="{Binding ScaleValue}"
+                                        XOffset="{Binding XOffset}"
+                                        YOffset="{Binding YOffset}" />
+                                    <behaviors:ViewportBehavior
+                                        PanEndCommand="{Binding PanEndCommand}"
+                                        PanStartCommand="{Binding PanStartCommand}"
+                                        PanningCommand="{Binding PanningCommand}"
+                                        ZoomCommand="{Binding ZoomCommand}" />
+                                </i:Interaction.Behaviors>
 
-                            <ItemsControl
-                                Panel.ZIndex="1"
-                                ItemsSource="{Binding Shapes}"
-                                RenderOptions.BitmapScalingMode="HighQuality"
-                                RenderOptions.EdgeMode="Aliased"
-                                UseLayoutRounding="True">
+                                <Canvas
+                                    Canvas.Left="{Binding XOffset}"
+                                    Canvas.Top="{Binding YOffset}"
+                                    Background="Red">
+                                    <ItemsControl
+                                        Panel.ZIndex="1"
+                                        ItemsSource="{Binding Shapes}"
+                                        RenderOptions.BitmapScalingMode="HighQuality"
+                                        RenderOptions.EdgeMode="Aliased"
+                                        UseLayoutRounding="True">
 
-                                <ItemsControl.Resources>
-                                    <ContextMenu x:Key="ShapeContextMenu">
-                                        <MenuItem
-                                            Command="{Binding ElementName=Root, Path=DeleteCommand}"
-                                            Header="Delete" />
-                                        <MenuItem
-                                            Command="{Binding ElementName=Root, Path=CopyCommand}"
-                                            Header="Copy" />
-                                    </ContextMenu>
-                                </ItemsControl.Resources>
+                                        <ItemsControl.Resources>
+                                            <ContextMenu x:Key="ShapeContextMenu">
+                                                <MenuItem
+                                                    Command="{Binding ElementName=Root, Path=DeleteCommand}"
+                                                    Header="Delete" />
+                                                <MenuItem
+                                                    Command="{Binding ElementName=Root, Path=CopyCommand}"
+                                                    Header="Copy" />
+                                            </ContextMenu>
+                                        </ItemsControl.Resources>
 
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <Canvas IsItemsHost="True" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
+                                        <ItemsControl.RenderTransform>
+                                            <ScaleTransform CenterX="0" CenterY="0" ScaleX="{Binding ScaleValue}" ScaleY="{Binding ScaleValue}" />
+                                        </ItemsControl.RenderTransform>
 
-                                <ItemsControl.ItemContainerStyle>
-                                    <Style TargetType="ContentPresenter">
-                                        <Setter Property="Canvas.Left" Value="{Binding TopLeft.X}" />
-                                        <Setter Property="Canvas.Top" Value="{Binding TopLeft.Y}" />
-                                        <Setter Property="Panel.ZIndex" Value="{Binding ZIndex}" />
-                                    </Style>
-                                </ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas IsItemsHost="True" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
 
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Rectangle
-                                            Width="{Binding DieSize.Width}"
-                                            Height="{Binding DieSize.Height}"
-                                            ContextMenu="{StaticResource ShapeContextMenu}"
-                                            Cursor="SizeAll"
-                                            Fill="{Binding FillColor}">
-                                            <i:Interaction.Behaviors>
-                                                <behaviors:ShapeEditBehavior IsSelected="{Binding IsSelected}" />
-                                            </i:Interaction.Behaviors>
-                                        </Rectangle>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Canvas>
+                                        <ItemsControl.ItemContainerStyle>
+                                            <Style TargetType="ContentPresenter">
+                                                <Setter Property="Canvas.Left" Value="{Binding TopLeft.X}" />
+                                                <Setter Property="Canvas.Top" Value="{Binding TopLeft.Y}" />
+                                                <Setter Property="Panel.ZIndex" Value="{Binding ZIndex}" />
+                                            </Style>
+                                        </ItemsControl.ItemContainerStyle>
+
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Rectangle
+                                                    Width="{Binding DieSize.Width}"
+                                                    Height="{Binding DieSize.Height}"
+                                                    ContextMenu="{StaticResource ShapeContextMenu}"
+                                                    Cursor="SizeAll"
+                                                    Fill="{Binding FillColor}">
+                                                    <i:Interaction.Behaviors>
+                                                        <behaviors:ShapeEditBehavior IsSelected="{Binding IsSelected}" />
+                                                    </i:Interaction.Behaviors>
+                                                </Rectangle>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Canvas>
+
+
+                            </Canvas>
+                        </ScrollViewer>
                     </AdornerDecorator>
                 </DockPanel>
-
             </TabItem>
 
             <TabItem

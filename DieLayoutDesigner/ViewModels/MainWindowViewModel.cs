@@ -71,6 +71,74 @@ public class MainWindowViewModel : ObservableObject, IDisposable
 
     #endregion
 
+
+    #region ZoomIn / ZoomOut
+
+    private double _scaleValue = 1;
+    private double _xOffset = 0;
+    private double _yOffset = 0;
+
+    public double ScaleValue
+    {
+        get => _scaleValue;
+        set => SetProperty(ref _scaleValue, value);
+    }
+
+    public double XOffset
+    {
+        get => _xOffset;
+        set => SetProperty(ref _xOffset, value);
+    }
+
+    public double YOffset
+    {
+        get => _yOffset;
+        set => SetProperty(ref _yOffset, value);
+    }
+
+    private ICommand _zoomCommand;
+    public ICommand ZoomCommand => _zoomCommand ??= new RelayCommand<MouseWheelEventArgs>(OnZoom);
+
+    private ICommand _panStartCommand;
+    public ICommand PanStartCommand => _panStartCommand ??= new RelayCommand<MouseButtonEventArgs>(OnPanStart);
+
+    private ICommand _panningCommand;
+    public ICommand PanningCommand => _panningCommand ??= new RelayCommand<Vector>(OnPanning);
+
+    private ICommand _panEndCommand;
+    public ICommand PanEndCommand => _panEndCommand ??= new RelayCommand<MouseButtonEventArgs>(OnPanEnd);
+
+    private void OnZoom(MouseWheelEventArgs e)
+    {
+        if (e.Delta > 0)
+        {
+            ScaleValue = Math.Min(ScaleValue + 1, 10);
+        }
+        else
+        {
+            ScaleValue = Math.Max(ScaleValue - 1, 1);
+        }
+    }
+
+    private void OnPanStart(MouseButtonEventArgs e)
+    {
+        // 可以在這裡添加其他邏輯
+    }
+
+    private void OnPanning(Vector delta)
+    {
+        XOffset += delta.X;
+        YOffset += delta.Y;
+    }
+
+    private void OnPanEnd(MouseButtonEventArgs e)
+    {
+        // 可以在這裡添加其他邏輯
+    }
+
+    #endregion
+
+
     #region Commands
 
     public ICommand StartDrawingCommand { get; private set; }

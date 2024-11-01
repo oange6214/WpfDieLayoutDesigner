@@ -39,14 +39,9 @@ public class ResizeAdorner : Adorner
         {
             var thumb = new Thumb
             {
-                Width = 8,
-                Height = 8,
-                Background = Brushes.White,
-                BorderBrush = Brushes.Black,
-                BorderThickness = new Thickness(1),
+                Style = Application.Current.Resources["ModernResizeThumbStyle"] as Style,
                 Cursor = cursor
             };
-
             thumb.DragDelta += (s, e) => OnThumbDragDelta(position, e);
             _thumbs.Add(thumb);
             _visualChildren.Add(thumb);

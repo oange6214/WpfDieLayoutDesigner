@@ -73,7 +73,7 @@ public class ShapeEditBehavior : Behavior<Rectangle>
         if (IsSelected && _adornerLayer != null)
         {
             _selectionAdorner = new SelectionAdorner(AssociatedObject);
-            _resizeAdorner = new ResizeAdorner(AssociatedObject as Rectangle);
+            _resizeAdorner = new ResizeAdorner(AssociatedObject);
             _adornerLayer.Add(_selectionAdorner);
             _adornerLayer.Add(_resizeAdorner);
         }
