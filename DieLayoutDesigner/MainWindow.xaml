@@ -11,6 +11,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="clr-namespace:DieLayoutDesigner.Models"
     xmlns:vm="clr-namespace:DieLayoutDesigner.ViewModels"
+    x:Name="Root"
     Title="Dual Canvas"
     Width="800"
     Height="500"
@@ -53,13 +54,10 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="200" />
-            <!--  圖層面板  -->
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="300" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!--  圖層面板  -->
         <DockPanel
             Grid.Column="0"
             Background="#F0F0F0">
@@ -67,7 +65,7 @@
                 Margin="10,5"
                 DockPanel.Dock="Top"
                 FontWeight="Bold"
-                Text="圖層" />
+                Text="Layer" />
 
             <ListView
                 DockPanel.Dock="Top"
@@ -76,59 +74,103 @@
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <DockPanel>
-                            <!--  顯示/隱藏切換  -->
                             <CheckBox
-                                Margin="0,0,5,0"
+                                Margin="0,0,8,0"
+                                DockPanel.Dock="Left"
                                 IsChecked="{Binding IsVisible}"
-                                ToolTip="顯示/隱藏" />
+                                ToolTip="Show/Hide" />
 
-                            <!--  圖層名稱  -->
-                            <TextBlock>
-                                <Run Text="矩形 " />
-                                <Run Text="{Binding Index}" />
-                                <Run Text=" (" />
-                                <Run Text="{Binding DieSize.Width, StringFormat=F0}" />
-                                <Run Text="x" />
-                                <Run Text="{Binding DieSize.Height, StringFormat=F0}" />
-                                <Run Text=")" />
-                            </TextBlock>
+                            <!--  Information on the left  -->
+                            <StackPanel DockPanel.Dock="Left">
+                                <TextBlock>
+                                    <Run
+                                        FontWeight="SemiBold"
+                                        Text="Rectangle " />
+                                    <Run Text="{Binding Index}" />
+                                </TextBlock>
+                            </StackPanel>
 
-                            <!--  右鍵選單  -->
+                            <!--  Information on the right  -->
+                            <StackPanel
+                                HorizontalAlignment="Right"
+                                DockPanel.Dock="Right"
+                                Orientation="Horizontal">
+                                <!--  Location information  -->
+                                <Border
+                                    Margin="0,0,8,0"
+                                    Padding="4,2"
+                                    Background="#F0F0F0"
+                                    CornerRadius="3">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock
+                                            Margin="0,0,2,0"
+                                            Foreground="#666"
+                                            Text="X:" />
+                                        <TextBlock Text="{Binding TopLeft.X, StringFormat=F0}" />
+                                        <TextBlock
+                                            Margin="4,0,2,0"
+                                            Foreground="#666"
+                                            Text=" Y:" />
+                                        <TextBlock Text="{Binding TopLeft.Y, StringFormat=F0}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!--  Size information  -->
+                                <Border
+                                    Padding="4,2"
+                                    Background="#F0F0F0"
+                                    CornerRadius="3">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock
+                                            Margin="0,0,2,0"
+                                            Foreground="#666"
+                                            Text="W:" />
+                                        <TextBlock Text="{Binding DieSize.Width, StringFormat=F0}" />
+                                        <TextBlock
+                                            Margin="4,0,2,0"
+                                            Foreground="#666"
+                                            Text=" H:" />
+                                        <TextBlock Text="{Binding DieSize.Height, StringFormat=F0}" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
                             <DockPanel.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem
                                         Command="{Binding DataContext.RenameCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding}"
-                                        Header="重新命名" />
-                                    <MenuItem
-                                        Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding}"
-                                        Header="刪除" />
+                                        Header="Rename" />
                                     <Separator />
                                     <MenuItem
-                                        Command="{Binding DataContext.BringToFrontCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding}"
-                                        Header="移到最上層" />
-                                    <MenuItem
-                                        Command="{Binding DataContext.SendToBackCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding}"
-                                        Header="移到最下層" />
+                                        Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        Header="Delete" />
                                 </ContextMenu>
                             </DockPanel.ContextMenu>
                         </DockPanel>
                     </DataTemplate>
                 </ListView.ItemTemplate>
+
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="Padding" Value="8,4" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <!--  Background color when selected  -->
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#E3F2FD" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ListView.ItemContainerStyle>
             </ListView>
         </DockPanel>
 
         <TabControl
             Grid.Column="1"
             Grid.ColumnSpan="2">
-
             <TabItem
                 x:Name="Tab1"
                 Header="Canvas 1">
-
                 <DockPanel>
                     <TextBlock
                         Margin="5"
@@ -157,17 +199,11 @@
                                 <ItemsControl.Resources>
                                     <ContextMenu x:Key="ShapeContextMenu">
                                         <MenuItem
-                                            Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                            Header="刪除" />
+                                            Command="{Binding ElementName=Root, Path=DeleteCommand}"
+                                            Header="Delete" />
                                         <MenuItem
-                                            Command="{Binding DataContext.CopyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                            Header="複製" />
-                                        <MenuItem
-                                            Command="{Binding DataContext.BringToFrontCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                            Header="移到最上層" />
-                                        <MenuItem
-                                            Command="{Binding DataContext.SendToBackCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                            Header="移到最下層" />
+                                            Command="{Binding ElementName=Root, Path=CopyCommand}"
+                                            Header="Copy" />
                                     </ContextMenu>
                                 </ItemsControl.Resources>
 
@@ -202,8 +238,6 @@
                             </ItemsControl>
                         </Canvas>
                     </AdornerDecorator>
-
-
                 </DockPanel>
 
             </TabItem>
@@ -211,10 +245,12 @@
             <TabItem
                 x:Name="Tab2"
                 Header="Canvas 2">
-                <ItemsControl ItemsSource="{Binding Shapes}">
+                <ItemsControl
+                    IsHitTestVisible="False"
+                    ItemsSource="{Binding Shapes}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <Canvas />
+                            <Canvas Background="Transparent" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
 
@@ -228,17 +264,15 @@
 
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <controls:SelectableRectangle />
+                            <Rectangle
+                                Width="{Binding DieSize.Width}"
+                                Height="{Binding DieSize.Height}"
+                                Fill="{Binding FillColor}" />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </TabItem>
         </TabControl>
+
     </Grid>
-
-
-
-
-
-
 </Window>
