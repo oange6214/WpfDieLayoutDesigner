@@ -6,10 +6,16 @@ namespace DieLayoutDesigner.Adorners;
 
 public class SelectionAdorner : Adorner
 {
+    #region Constructors
+
     public SelectionAdorner(UIElement adornedElement) : base(adornedElement)
     {
         IsHitTestVisible = false;
     }
+
+    #endregion Constructors
+
+    #region Methods
 
     protected override void OnRender(DrawingContext drawingContext)
     {
@@ -18,4 +24,6 @@ public class SelectionAdorner : Adorner
         pen.DashStyle = new DashStyle(new double[] { 2, 2 }, 0);
         drawingContext.DrawRectangle(null, pen, rect);
     }
+
+    #endregion Methods
 }

@@ -10,9 +10,7 @@ namespace DieLayoutDesigner.Adorners;
 
 public class ResizeAdorner : Adorner
 {
-    private readonly VisualCollection _visualChildren;
-    private readonly List<Thumb> _thumbs = new();
-    private readonly Rectangle _adornerElement;
+    #region Constructors
 
     public ResizeAdorner(Rectangle adornerElement) : base(adornerElement)
     {
@@ -21,7 +19,37 @@ public class ResizeAdorner : Adorner
         CreateThumbs();
     }
 
+    #endregion Constructors
+
+    #region Fields
+
+    private readonly Rectangle _adornerElement;
+    private readonly List<Thumb> _thumbs = new();
+    private readonly VisualCollection _visualChildren;
+
+    #endregion Fields
+
+    #region Properties
+
     protected override int VisualChildrenCount => _visualChildren.Count;
+
+    #endregion Properties
+
+    #region Methods
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var rect = new Rect(finalSize);
+
+        foreach (var thumb in _thumbs)
+        {
+            var index = _thumbs.IndexOf(thumb);
+            var position = GetThumbPosition(index, rect);
+            thumb.Arrange(new Rect(position.X - 4, position.Y - 4, 8, 8));
+        }
+
+        return finalSize;
+    }
 
     protected override Visual GetVisualChild(int index) => _visualChildren[index];
 
@@ -47,21 +75,6 @@ public class ResizeAdorner : Adorner
             _visualChildren.Add(thumb);
         }
     }
-
-    protected override Size ArrangeOverride(Size finalSize)
-    {
-        var rect = new Rect(finalSize);
-
-        foreach (var thumb in _thumbs)
-        {
-            var index = _thumbs.IndexOf(thumb);
-            var position = GetThumbPosition(index, rect);
-            thumb.Arrange(new Rect(position.X - 4, position.Y - 4, 8, 8));
-        }
-
-        return finalSize;
-    }
-
     private Point GetThumbPosition(int index, Rect rect)
     {
         return index switch
@@ -119,4 +132,6 @@ public class ResizeAdorner : Adorner
                 break;
         }
     }
+
+    #endregion Methods
 }
