@@ -1,53 +1,13 @@
 ﻿using Microsoft.Xaml.Behaviors;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace DieLayoutDesigner.Behaviors;
 
-public class MousePositionBehavior : Behavior<Canvas>
+public class MousePositionBehavior : Behavior<UIElement>
 {
-    #region Transform Properties
-    public static readonly DependencyProperty ScaleValueProperty =
-        DependencyProperty.Register(
-            nameof(ScaleValue),
-            typeof(double),
-            typeof(MousePositionBehavior),
-            new PropertyMetadata(1.0));
 
-    public static readonly DependencyProperty XOffsetProperty =
-        DependencyProperty.Register(
-            nameof(XOffset),
-            typeof(double),
-            typeof(MousePositionBehavior),
-            new PropertyMetadata(0.0));
-
-    public static readonly DependencyProperty YOffsetProperty =
-        DependencyProperty.Register(
-            nameof(YOffset),
-            typeof(double),
-            typeof(MousePositionBehavior),
-            new PropertyMetadata(0.0));
-
-    public double ScaleValue
-    {
-        get => (double)GetValue(ScaleValueProperty);
-        set => SetValue(ScaleValueProperty, value);
-    }
-
-    public double XOffset
-    {
-        get => (double)GetValue(XOffsetProperty);
-        set => SetValue(XOffsetProperty, value);
-    }
-
-    public double YOffset
-    {
-        get => (double)GetValue(YOffsetProperty);
-        set => SetValue(YOffsetProperty, value);
-    }
-    #endregion
-
+    #region Fields
 
     public static readonly DependencyProperty MouseDownCommandProperty = DependencyProperty.Register(
         nameof(MouseDownCommand),
@@ -67,21 +27,72 @@ public class MousePositionBehavior : Behavior<Canvas>
         typeof(MousePositionBehavior)
     );
 
+    public static readonly DependencyProperty ScaleValueProperty = DependencyProperty.Register(
+                        nameof(ScaleValue),
+            typeof(double),
+            typeof(MousePositionBehavior),
+            new PropertyMetadata(1.0)
+    );
+
+    public static readonly DependencyProperty XOffsetProperty = DependencyProperty.Register(
+            nameof(XOffset),
+            typeof(double),
+            typeof(MousePositionBehavior),
+            new PropertyMetadata(0.0)
+    );
+
+    public static readonly DependencyProperty YOffsetProperty = DependencyProperty.Register(
+            nameof(YOffset),
+            typeof(double),
+            typeof(MousePositionBehavior),
+            new PropertyMetadata(0.0)
+    );
+
+    private ICoordinateSystem? _coordinateSystem;
+
+    #endregion Fields
+
+    #region Properties
+
     public ICommand MouseDownCommand
     {
         get => (ICommand)GetValue(MouseDownCommandProperty);
         set => SetValue(MouseDownCommandProperty, value);
     }
+
     public ICommand MouseMoveCommand
     {
         get => (ICommand)GetValue(MouseMoveCommandProperty);
         set => SetValue(MouseMoveCommandProperty, value);
     }
+
     public ICommand MouseUpCommand
     {
         get => (ICommand)GetValue(MouseUpCommandProperty);
         set => SetValue(MouseUpCommandProperty, value);
     }
+
+    public double ScaleValue
+    {
+        get => (double)GetValue(ScaleValueProperty);
+        set => SetValue(ScaleValueProperty, value);
+    }
+
+    public double XOffset
+    {
+        get => (double)GetValue(XOffsetProperty);
+        set => SetValue(XOffsetProperty, value);
+    }
+
+    public double YOffset
+    {
+        get => (double)GetValue(YOffsetProperty);
+        set => SetValue(YOffsetProperty, value);
+    }
+
+    #endregion Properties
+
+    #region Methods
 
     protected override void OnAttached()
     {
@@ -89,7 +100,11 @@ public class MousePositionBehavior : Behavior<Canvas>
         AssociatedObject.MouseLeftButtonDown += OnMouseDown;
         AssociatedObject.MouseMove += OnMouseMove;
         AssociatedObject.MouseLeftButtonUp += OnMouseUp;
+
+        _coordinateSystem = new ScaledCoordinateSystem(ScaleValue, new Point(XOffset, YOffset));
     }
+
+
 
     protected override void OnDetaching()
     {
@@ -97,6 +112,13 @@ public class MousePositionBehavior : Behavior<Canvas>
         AssociatedObject.MouseMove -= OnMouseMove;
         AssociatedObject.MouseLeftButtonUp -= OnMouseUp;
         base.OnDetaching();
+    }
+
+    private Point GetTransformedPosition(MouseEventArgs e)
+    {
+        var position = e.GetPosition(AssociatedObject);
+        //return position;
+        return _coordinateSystem?.ToLogical(position) ?? position;
     }
 
     private void OnMouseDown(object sender, MouseButtonEventArgs e)
@@ -126,16 +148,5 @@ public class MousePositionBehavior : Behavior<Canvas>
         }
     }
 
-    private Point GetTransformedPosition(MouseEventArgs e)
-    {
-        // 獲取相對於 Canvas 的原始位置
-        var position = e.GetPosition(AssociatedObject);
-
-        // 從視覺位置轉換回邏輯位置
-        return new Point(
-            (position.X - XOffset) / ScaleValue,
-            (position.Y - YOffset) / ScaleValue
-        );
-    }
-
+    #endregion Methods
 }

@@ -6,33 +6,48 @@ namespace DieLayoutDesigner.Adorners;
 
 public class PreviewAdorner : Adorner
 {
+    #region Constructors
 
-    public PreviewAdorner(UIElement adornedElement, Point startPoint)
+    public PreviewAdorner(UIElement adornedElement, Point startPoint, double scaleValue)
         : base(adornedElement)
     {
-        _startPoint = startPoint;
-        _currentPoint = startPoint;
+        _scaleValue = scaleValue;
 
-        _fillBrush = new SolidColorBrush(Colors.Blue)
+        _startPoint = new Point(
+            startPoint.X / _scaleValue,
+            startPoint.Y / _scaleValue
+        );
+        _currentPoint = _startPoint;
+
+        _fillBrush = new SolidColorBrush(Colors.Blue) { Opacity = 0.3 };
+        _strokePen = new Pen(Brushes.Black, 1 / _scaleValue)
         {
-            Opacity = 0.3
-        };
-        _strokePen = new Pen(Brushes.Black, 1)
-        {
-            DashStyle = new DashStyle([2, 2], 0)
+            DashStyle = new DashStyle([2 / _scaleValue, 2 / _scaleValue], 0)
         };
 
         IsHitTestVisible = false;
     }
 
+    #endregion Constructors
+
+    #region Fields
+
     private readonly Brush _fillBrush;
+    private readonly double _scaleValue;
     private readonly Pen _strokePen;
     private Point _currentPoint;
     private Point _startPoint;
 
+    #endregion Fields
+
+    #region Methods
+
     public void UpdatePosition(Point currentPoint)
     {
-        _currentPoint = currentPoint;
+        _currentPoint = new Point(
+            currentPoint.X / _scaleValue,
+            currentPoint.Y / _scaleValue
+        );
         InvalidateVisual();
     }
 
@@ -44,7 +59,10 @@ public class PreviewAdorner : Adorner
             Math.Abs(_currentPoint.X - _startPoint.X),
             Math.Abs(_currentPoint.Y - _startPoint.Y));
 
+        drawingContext.PushTransform(new ScaleTransform(_scaleValue, _scaleValue));
         drawingContext.DrawRectangle(_fillBrush, _strokePen, rect);
+        drawingContext.Pop();
     }
 
+    #endregion Methods
 }

@@ -10,10 +10,13 @@ public class PreviewManager : IDisposable
     private PreviewAdorner? _currentPreview;
     private bool _disposed;
 
-    public void StartPreview(Canvas canvas, Point startPoint)
+    public void StartPreview(Canvas canvas, Point startPoint, double scaleValue)
     {
+        var contentControl = canvas.FindName("ContentCanvas") as ItemsControl;
+        if (contentControl == null) return;
+
         var adornerLayer = AdornerLayer.GetAdornerLayer(canvas);
-        _currentPreview = new PreviewAdorner(canvas, startPoint);
+        _currentPreview = new PreviewAdorner(contentControl, startPoint, scaleValue);
         adornerLayer?.Add(_currentPreview);
     }
 
@@ -22,11 +25,13 @@ public class PreviewManager : IDisposable
         _currentPreview?.UpdatePosition(currentPoint);
     }
 
-    public void EndPreview(Canvas canvas)
+    public void EndPreview(Canvas contentControl)
     {
+        ArgumentNullException.ThrowIfNull(contentControl);
+
         if (_currentPreview != null)
         {
-            var adornerLayer = AdornerLayer.GetAdornerLayer(canvas);
+            var adornerLayer = AdornerLayer.GetAdornerLayer(contentControl);
             adornerLayer?.Remove(_currentPreview);
             _currentPreview = null;
         }

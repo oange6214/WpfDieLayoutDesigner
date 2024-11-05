@@ -6,6 +6,7 @@ namespace DieLayoutDesigner.Models;
 
 public class DieShape : ObservableObject
 {
+
     #region Constructors
 
     public DieShape()
@@ -18,13 +19,6 @@ public class DieShape : ObservableObject
 
     #region Fields
 
-    private int _zIndex;
-    public int ZIndex
-    {
-        get => _zIndex;
-        set => SetProperty(ref _zIndex, value);
-    }
-
     private static int _counter = 0;
     private Geometry? _data;
     private Size _dieSize;
@@ -34,6 +28,7 @@ public class DieShape : ObservableObject
     private bool _isVisible = true;
     private string _name;
     private Point _topLeft;
+    private int _zIndex;
 
     #endregion Fields
 
@@ -85,6 +80,12 @@ public class DieShape : ObservableObject
     {
         get => _topLeft;
         set => SetProperty(ref _topLeft, value);
+    }
+
+    public int ZIndex
+    {
+        get => _zIndex;
+        set => SetProperty(ref _zIndex, value);
     }
 
     #endregion Properties

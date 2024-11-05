@@ -168,6 +168,7 @@
         <TabControl
             Grid.Column="1"
             Grid.ColumnSpan="2">
+
             <TabItem
                 x:Name="Tab1"
                 Header="Canvas 1">
@@ -184,31 +185,39 @@
                             <Canvas
                                 x:Name="DrawingCanvas"
                                 Background="Blue">
-                                <i:Interaction.Behaviors>
-                                    <behaviors:MousePositionBehavior
-                                        MouseDownCommand="{Binding StartDrawingCommand}"
-                                        MouseMoveCommand="{Binding DrawingCommand}"
-                                        MouseUpCommand="{Binding EndDrawingCommand}"
-                                        ScaleValue="{Binding ScaleValue}"
-                                        XOffset="{Binding XOffset}"
-                                        YOffset="{Binding YOffset}" />
-                                    <behaviors:ViewportBehavior
-                                        PanEndCommand="{Binding PanEndCommand}"
-                                        PanStartCommand="{Binding PanStartCommand}"
-                                        PanningCommand="{Binding PanningCommand}"
-                                        ZoomCommand="{Binding ZoomCommand}" />
-                                </i:Interaction.Behaviors>
 
-                                <Canvas
-                                    Canvas.Left="{Binding XOffset}"
-                                    Canvas.Top="{Binding YOffset}"
-                                    Background="Red">
+                                <Canvas>
+
+                                    <i:Interaction.Behaviors>
+                                        <behaviors:ViewportBehavior
+                                            PanEndCommand="{Binding PanEndCommand}"
+                                            PanStartCommand="{Binding PanStartCommand}"
+                                            PanningCommand="{Binding PanningCommand}"
+                                            ZoomCommand="{Binding ZoomCommand}" />
+                                    </i:Interaction.Behaviors>
+
                                     <ItemsControl
-                                        Panel.ZIndex="1"
+                                        x:Name="ContentCanvas"
+                                        Canvas.Left="{Binding XOffset}"
+                                        Canvas.Top="{Binding YOffset}"
+                                        Width="500"
+                                        Height="500"
+                                        x:FieldModifier="public"
+                                        Background="WhiteSmoke"
                                         ItemsSource="{Binding Shapes}"
                                         RenderOptions.BitmapScalingMode="HighQuality"
                                         RenderOptions.EdgeMode="Aliased"
                                         UseLayoutRounding="True">
+
+                                        <i:Interaction.Behaviors>
+                                            <behaviors:MousePositionBehavior
+                                                MouseDownCommand="{Binding StartDrawingCommand}"
+                                                MouseMoveCommand="{Binding DrawingCommand}"
+                                                MouseUpCommand="{Binding EndDrawingCommand}"
+                                                ScaleValue="{Binding ScaleValue}"
+                                                XOffset="{Binding XOffset}"
+                                                YOffset="{Binding YOffset}" />
+                                        </i:Interaction.Behaviors>
 
                                         <ItemsControl.Resources>
                                             <ContextMenu x:Key="ShapeContextMenu">
@@ -293,6 +302,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </TabItem>
+
         </TabControl>
 
     </Grid>

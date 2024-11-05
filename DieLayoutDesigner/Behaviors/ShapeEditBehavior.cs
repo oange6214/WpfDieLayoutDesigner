@@ -11,15 +11,24 @@ namespace DieLayoutDesigner.Behaviors;
 
 public class ShapeEditBehavior : Behavior<Rectangle>
 {
+    #region Fields
+
+    public static readonly DependencyProperty IsSelectedProperty = DependencyProperty.Register(
+        nameof(IsSelected),
+        typeof(bool),
+        typeof(ShapeEditBehavior),
+        new PropertyMetadata(false, OnIsSelectedChanged)
+    );
+
     private AdornerLayer? _adornerLayer;
-    private SelectionAdorner? _selectionAdorner;
-    private ResizeAdorner? _resizeAdorner;
     private bool _isDragging;
+    private ResizeAdorner? _resizeAdorner;
+    private SelectionAdorner? _selectionAdorner;
     private Point _startPoint;
 
-    public static readonly DependencyProperty IsSelectedProperty =
-        DependencyProperty.Register(nameof(IsSelected), typeof(bool),
-            typeof(ShapeEditBehavior), new PropertyMetadata(false, OnIsSelectedChanged));
+    #endregion Fields
+
+    #region Properties
 
     public bool IsSelected
     {
@@ -27,13 +36,9 @@ public class ShapeEditBehavior : Behavior<Rectangle>
         set => SetValue(IsSelectedProperty, value);
     }
 
-    private static void OnIsSelectedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        if (d is ShapeEditBehavior behavior)
-        {
-            behavior.UpdateAdorners();
-        }
-    }
+    #endregion Properties
+
+    #region Methods
 
     protected override void OnAttached()
     {
@@ -47,14 +52,6 @@ public class ShapeEditBehavior : Behavior<Rectangle>
         _adornerLayer = AdornerLayer.GetAdornerLayer(AssociatedObject);
     }
 
-    private void OnLoaded(object sender, RoutedEventArgs e)
-    {
-        if (IsSelected)
-        {
-            UpdateAdorners();
-        }
-    }
-
     protected override void OnDetaching()
     {
         AssociatedObject.Loaded -= OnLoaded;
@@ -66,30 +63,20 @@ public class ShapeEditBehavior : Behavior<Rectangle>
         base.OnDetaching();
     }
 
-    private void UpdateAdorners()
+    private static void OnIsSelectedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        RemoveAdorners();
-
-        if (IsSelected && _adornerLayer != null)
+        if (d is ShapeEditBehavior behavior)
         {
-            _selectionAdorner = new SelectionAdorner(AssociatedObject);
-            _resizeAdorner = new ResizeAdorner(AssociatedObject);
-            _adornerLayer.Add(_selectionAdorner);
-            _adornerLayer.Add(_resizeAdorner);
+            behavior.UpdateAdorners();
         }
     }
-
-    private void RemoveAdorners()
+    private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (_adornerLayer != null)
+        if (IsSelected)
         {
-            if (_selectionAdorner != null)
-                _adornerLayer.Remove(_selectionAdorner);
-            if (_resizeAdorner != null)
-                _adornerLayer.Remove(_resizeAdorner);
+            UpdateAdorners();
         }
     }
-
     private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (AssociatedObject.DataContext is DieShape shape &&
@@ -100,6 +87,15 @@ public class ShapeEditBehavior : Behavior<Rectangle>
             _startPoint = e.GetPosition(AssociatedObject.Parent as UIElement);
             AssociatedObject.CaptureMouse();
             vm.SelectShape(shape);
+        }
+    }
+
+    private void OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_isDragging)
+        {
+            _isDragging = false;
+            AssociatedObject.ReleaseMouseCapture();
         }
     }
 
@@ -119,12 +115,29 @@ public class ShapeEditBehavior : Behavior<Rectangle>
         }
     }
 
-    private void OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    private void RemoveAdorners()
     {
-        if (_isDragging)
+        if (_adornerLayer != null)
         {
-            _isDragging = false;
-            AssociatedObject.ReleaseMouseCapture();
+            if (_selectionAdorner != null)
+                _adornerLayer.Remove(_selectionAdorner);
+            if (_resizeAdorner != null)
+                _adornerLayer.Remove(_resizeAdorner);
         }
     }
+
+    private void UpdateAdorners()
+    {
+        RemoveAdorners();
+
+        if (IsSelected && _adornerLayer != null)
+        {
+            _selectionAdorner = new SelectionAdorner(AssociatedObject);
+            _resizeAdorner = new ResizeAdorner(AssociatedObject);
+            _adornerLayer.Add(_selectionAdorner);
+            _adornerLayer.Add(_resizeAdorner);
+        }
+    }
+
+    #endregion Methods
 }
