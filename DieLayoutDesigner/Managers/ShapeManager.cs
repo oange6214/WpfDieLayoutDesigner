@@ -8,7 +8,7 @@ namespace DieLayoutDesigner.Managers;
 public class ShapeManager
 {
     private int _currentMaxZIndex;
-    public ObservableCollection<DieShape> Shapes { get; } = [];
+    public ObservableCollection<DieShape> Shapes { get; set; } = [];
 
     public DieShape CreateShape(Point start, Point end)
     {

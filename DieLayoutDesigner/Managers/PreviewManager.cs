@@ -12,7 +12,7 @@ public class PreviewManager : IDisposable
 
     public void StartPreview(Canvas canvas, Point startPoint, double scaleValue)
     {
-        var contentControl = canvas.FindName("ContentCanvas") as ItemsControl;
+        var contentControl = canvas.FindName("PART_ShapesContainer") as ItemsControl;
         if (contentControl == null) return;
 
         var adornerLayer = AdornerLayer.GetAdornerLayer(canvas);

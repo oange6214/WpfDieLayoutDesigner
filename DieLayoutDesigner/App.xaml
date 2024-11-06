@@ -6,50 +6,10 @@
     StartupUri="MainWindow.xaml">
 
     <Application.Resources>
-
-        <Style
-            x:Key="ModernResizeThumbStyle"
-            TargetType="Thumb">
-            <Setter Property="Width" Value="12" />
-            <Setter Property="Height" Value="12" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Thumb">
-                        <Grid>
-                            <!--  外層半透明圓形  -->
-                            <Ellipse
-                                x:Name="OuterCircle"
-                                Width="12"
-                                Height="12"
-                                Fill="#22000000" />
-
-                            <!--  內層實心圓形  -->
-                            <Ellipse
-                                x:Name="InnerCircle"
-                                Width="6"
-                                Height="6"
-                                Fill="White"
-                                Stroke="#666666"
-                                StrokeThickness="1" />
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <!--  滑鼠懸停效果  -->
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="OuterCircle" Property="Fill" Value="#44000000" />
-                                <Setter TargetName="InnerCircle" Property="Fill" Value="#FFFFFF" />
-                                <Setter TargetName="InnerCircle" Property="Stroke" Value="#333333" />
-                            </Trigger>
-
-                            <!--  拖曳中效果  -->
-                            <Trigger Property="IsDragging" Value="True">
-                                <Setter TargetName="OuterCircle" Property="Fill" Value="#66000000" />
-                                <Setter TargetName="InnerCircle" Property="Fill" Value="#EEEEEE" />
-                                <Setter TargetName="InnerCircle" Property="Stroke" Value="#222222" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Controls/DieCanvas.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

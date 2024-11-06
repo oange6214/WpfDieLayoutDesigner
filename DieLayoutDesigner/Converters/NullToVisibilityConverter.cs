@@ -4,7 +4,6 @@ using System.Windows.Data;
 
 namespace DieLayoutDesigner.Converters;
 
-// Converters/NullToVisibilityConverter.cs
 public class NullToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

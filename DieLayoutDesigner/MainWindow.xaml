@@ -2,55 +2,14 @@
     x:Class="DieLayoutDesigner.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:behaviors="clr-namespace:DieLayoutDesigner.Behaviors"
     xmlns:controls="clr-namespace:DieLayoutDesigner.Controls"
-    xmlns:converters="clr-namespace:DieLayoutDesigner.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:local="clr-namespace:DieLayoutDesigner"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:models="clr-namespace:DieLayoutDesigner.Models"
     xmlns:vm="clr-namespace:DieLayoutDesigner.ViewModels"
-    x:Name="Root"
     Title="Dual Canvas"
-    Width="800"
-    Height="500"
     d:DataContext="{d:DesignInstance vm:MainWindowViewModel}"
     mc:Ignorable="d">
-
-    <Window.InputBindings>
-        <KeyBinding
-            Key="Delete"
-            Command="{Binding DeleteCommand}" />
-        <KeyBinding
-            Key="Escape"
-            Command="{Binding CancelCommand}" />
-        <KeyBinding
-            Key="A"
-            Command="{Binding SelectAllCommand}"
-            Modifiers="Control" />
-        <KeyBinding
-            Key="Left"
-            Command="{Binding MoveCommand}"
-            CommandParameter="Left" />
-        <KeyBinding
-            Key="Right"
-            Command="{Binding MoveCommand}"
-            CommandParameter="Right" />
-        <KeyBinding
-            Key="Up"
-            Command="{Binding MoveCommand}"
-            CommandParameter="Up" />
-        <KeyBinding
-            Key="Down"
-            Command="{Binding MoveCommand}"
-            CommandParameter="Down" />
-    </Window.InputBindings>
-
-    <Window.Resources>
-        <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-    </Window.Resources>
 
     <Grid>
         <Grid.ColumnDefinitions>
@@ -58,6 +17,7 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
+        <!--  Left Panel - Layer List  -->
         <DockPanel
             Grid.Column="0"
             Background="#F0F0F0">
@@ -70,7 +30,7 @@
             <ListView
                 DockPanel.Dock="Top"
                 ItemsSource="{Binding Shapes}"
-                SelectedItem="{Binding SelectedShape}">
+                SelectedItem="{Binding SelectedShape, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <DockPanel>
@@ -80,7 +40,6 @@
                                 IsChecked="{Binding IsVisible}"
                                 ToolTip="Show/Hide" />
 
-                            <!--  Information on the left  -->
                             <StackPanel DockPanel.Dock="Left">
                                 <TextBlock>
                                     <Run
@@ -90,12 +49,10 @@
                                 </TextBlock>
                             </StackPanel>
 
-                            <!--  Information on the right  -->
                             <StackPanel
                                 HorizontalAlignment="Right"
                                 DockPanel.Dock="Right"
                                 Orientation="Horizontal">
-                                <!--  Location information  -->
                                 <Border
                                     Margin="0,0,8,0"
                                     Padding="4,2"
@@ -115,7 +72,6 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!--  Size information  -->
                                 <Border
                                     Padding="4,2"
                                     Background="#F0F0F0"
@@ -134,18 +90,6 @@
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
-
-                            <DockPanel.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem
-                                        Command="{Binding DataContext.RenameCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        Header="Rename" />
-                                    <Separator />
-                                    <MenuItem
-                                        Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        Header="Delete" />
-                                </ContextMenu>
-                            </DockPanel.ContextMenu>
                         </DockPanel>
                     </DataTemplate>
                 </ListView.ItemTemplate>
@@ -154,7 +98,6 @@
                     <Style TargetType="ListViewItem">
                         <Setter Property="Padding" Value="8,4" />
                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                        <!--  Background color when selected  -->
                         <Style.Triggers>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter Property="Background" Value="#E3F2FD" />
@@ -165,116 +108,31 @@
             </ListView>
         </DockPanel>
 
-        <TabControl
-            Grid.Column="1"
-            Grid.ColumnSpan="2">
-
-            <TabItem
-                x:Name="Tab1"
-                Header="Canvas 1">
+        <!--  Right Panel - Canvas Area  -->
+        <TabControl Grid.Column="1">
+            <TabItem Header="Canvas 1">
                 <DockPanel>
                     <TextBlock
                         Margin="5"
                         DockPanel.Dock="Top"
-                        Text="{Binding StatusText}" />
+                        Text="{Binding StatusText, ElementName=DieCanvas}" />
 
-                    <AdornerDecorator>
-                        <ScrollViewer
-                            HorizontalScrollBarVisibility="Auto"
-                            VerticalScrollBarVisibility="Auto">
-                            <Canvas
-                                x:Name="DrawingCanvas"
-                                Background="Blue">
-
-                                <Canvas>
-
-                                    <i:Interaction.Behaviors>
-                                        <behaviors:ViewportBehavior
-                                            PanEndCommand="{Binding PanEndCommand}"
-                                            PanStartCommand="{Binding PanStartCommand}"
-                                            PanningCommand="{Binding PanningCommand}"
-                                            ZoomCommand="{Binding ZoomCommand}" />
-                                    </i:Interaction.Behaviors>
-
-                                    <ItemsControl
-                                        x:Name="ContentCanvas"
-                                        Canvas.Left="{Binding XOffset}"
-                                        Canvas.Top="{Binding YOffset}"
-                                        Width="500"
-                                        Height="500"
-                                        x:FieldModifier="public"
-                                        Background="WhiteSmoke"
-                                        ItemsSource="{Binding Shapes}"
-                                        RenderOptions.BitmapScalingMode="HighQuality"
-                                        RenderOptions.EdgeMode="Aliased"
-                                        UseLayoutRounding="True">
-
-                                        <i:Interaction.Behaviors>
-                                            <behaviors:MousePositionBehavior
-                                                MouseDownCommand="{Binding StartDrawingCommand}"
-                                                MouseMoveCommand="{Binding DrawingCommand}"
-                                                MouseUpCommand="{Binding EndDrawingCommand}"
-                                                ScaleValue="{Binding ScaleValue}"
-                                                XOffset="{Binding XOffset}"
-                                                YOffset="{Binding YOffset}" />
-                                        </i:Interaction.Behaviors>
-
-                                        <ItemsControl.Resources>
-                                            <ContextMenu x:Key="ShapeContextMenu">
-                                                <MenuItem
-                                                    Command="{Binding ElementName=Root, Path=DeleteCommand}"
-                                                    Header="Delete" />
-                                                <MenuItem
-                                                    Command="{Binding ElementName=Root, Path=CopyCommand}"
-                                                    Header="Copy" />
-                                            </ContextMenu>
-                                        </ItemsControl.Resources>
-
-                                        <ItemsControl.RenderTransform>
-                                            <ScaleTransform CenterX="0" CenterY="0" ScaleX="{Binding ScaleValue}" ScaleY="{Binding ScaleValue}" />
-                                        </ItemsControl.RenderTransform>
-
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <Canvas IsItemsHost="True" />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-
-                                        <ItemsControl.ItemContainerStyle>
-                                            <Style TargetType="ContentPresenter">
-                                                <Setter Property="Canvas.Left" Value="{Binding TopLeft.X}" />
-                                                <Setter Property="Canvas.Top" Value="{Binding TopLeft.Y}" />
-                                                <Setter Property="Panel.ZIndex" Value="{Binding ZIndex}" />
-                                            </Style>
-                                        </ItemsControl.ItemContainerStyle>
-
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Rectangle
-                                                    Width="{Binding DieSize.Width}"
-                                                    Height="{Binding DieSize.Height}"
-                                                    ContextMenu="{StaticResource ShapeContextMenu}"
-                                                    Cursor="SizeAll"
-                                                    Fill="{Binding FillColor}">
-                                                    <i:Interaction.Behaviors>
-                                                        <behaviors:ShapeEditBehavior IsSelected="{Binding IsSelected}" />
-                                                    </i:Interaction.Behaviors>
-                                                </Rectangle>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </Canvas>
-
-
-                            </Canvas>
-                        </ScrollViewer>
-                    </AdornerDecorator>
+                    <controls:DieCanvas
+                        x:Name="DieCanvas"
+                        Width="800"
+                        Height="500"
+                        Background="Transparent"
+                        ScaleValue="{Binding ScaleValue}"
+                        SelectedShape="{Binding SelectedShape, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        Shapes="{Binding Shapes}"
+                        XDiePitch="{Binding XDiePitch}"
+                        XOffset="{Binding XOffset}"
+                        YDiePitch="{Binding YDiePitch}"
+                        YOffset="{Binding YOffset}" />
                 </DockPanel>
             </TabItem>
 
-            <TabItem
-                x:Name="Tab2"
-                Header="Canvas 2">
+            <TabItem Header="Canvas 2">
                 <ItemsControl
                     IsHitTestVisible="False"
                     ItemsSource="{Binding Shapes}">
@@ -302,8 +160,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </TabItem>
-
         </TabControl>
-
     </Grid>
+
 </Window>

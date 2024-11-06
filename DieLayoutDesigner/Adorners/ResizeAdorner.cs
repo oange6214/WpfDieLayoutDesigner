@@ -89,7 +89,8 @@ public class ResizeAdorner : Adorner
 
     private void OnThumbDragDelta(string position, DragDeltaEventArgs e)
     {
-        if (_adornerElement.DataContext is not DieShape shape) return;
+        if (_adornerElement.DataContext is not DieShape shape) 
+            return;
 
         var deltaX = e.HorizontalChange;
         var deltaY = e.VerticalChange;
