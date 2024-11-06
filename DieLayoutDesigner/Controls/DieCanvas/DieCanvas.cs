@@ -47,6 +47,12 @@ public class DieCanvas : Control
             typeof(ICommand),
             typeof(DieCanvas));
 
+    public static readonly DependencyProperty ContextMenuCommandProperty =
+        DependencyProperty.Register(
+            nameof(ContextMenuCommand),
+            typeof(ICommand),
+            typeof(DieCanvas));
+
     public static readonly DependencyProperty DeleteCommandProperty =
         DependencyProperty.Register(
             nameof(DeleteCommand),
@@ -64,6 +70,20 @@ public class DieCanvas : Control
             nameof(EndDrawingCommand),
             typeof(ICommand),
             typeof(DieCanvas));
+
+    public static readonly DependencyProperty MaxScaleProperty =
+        DependencyProperty.Register(
+            nameof(MaxScale),
+            typeof(double),
+            typeof(DieCanvas),
+            new PropertyMetadata(10.0));
+
+    public static readonly DependencyProperty MinScaleProperty =
+     DependencyProperty.Register(
+         nameof(MinScale),
+         typeof(double),
+         typeof(DieCanvas),
+         new PropertyMetadata(0.1));
 
     public static readonly DependencyProperty MoveCommandProperty =
         DependencyProperty.Register(
@@ -165,11 +185,19 @@ public class DieCanvas : Control
             typeof(double),
             typeof(DieCanvas),
             new PropertyMetadata(0d));
+
     public static readonly DependencyProperty ZoomCommandProperty =
         DependencyProperty.Register(
             nameof(ZoomCommand),
             typeof(ICommand),
             typeof(DieCanvas));
+
+    public static readonly DependencyProperty ZoomFactorProperty =
+        DependencyProperty.Register(
+            nameof(ZoomFactor),
+            typeof(double),
+            typeof(DieCanvas),
+            new PropertyMetadata(1.2));
 
     private readonly PreviewManager _previewManager;
 
@@ -185,6 +213,14 @@ public class DieCanvas : Control
 
     #endregion Fields
 
+    #region Events
+
+    public event EventHandler<OffsetChangedEventArgs>? OffsetChanged;
+
+    public event EventHandler<ScaleChangedEventArgs>? ScaleChanged;
+
+    #endregion Events
+
     #region Properties
 
     public ICommand CancelCommand
@@ -197,6 +233,12 @@ public class DieCanvas : Control
     {
         get => (ICommand)GetValue(ClearSelectionCommandProperty);
         private set => SetValue(ClearSelectionCommandProperty, value);
+    }
+
+    public ICommand ContextMenuCommand
+    {
+        get => (ICommand)GetValue(ContextMenuCommandProperty);
+        set => SetValue(ContextMenuCommandProperty, value);
     }
 
     public ICommand DeleteCommand
@@ -215,6 +257,18 @@ public class DieCanvas : Control
     {
         get => (ICommand)GetValue(EndDrawingCommandProperty);
         private set => SetValue(EndDrawingCommandProperty, value);
+    }
+
+    public double MaxScale
+    {
+        get => (double)GetValue(MaxScaleProperty);
+        set => SetValue(MaxScaleProperty, value);
+    }
+
+    public double MinScale
+    {
+        get => (double)GetValue(MinScaleProperty);
+        set => SetValue(MinScaleProperty, value);
     }
 
     public ICommand MoveCommand
@@ -300,6 +354,7 @@ public class DieCanvas : Control
         get => (double)GetValue(YDiePitchProperty);
         set => SetValue(YDiePitchProperty, value);
     }
+
     public double YOffset
     {
         get => (double)GetValue(YOffsetProperty);
@@ -310,6 +365,12 @@ public class DieCanvas : Control
     {
         get => (ICommand)GetValue(ZoomCommandProperty);
         private set => SetValue(ZoomCommandProperty, value);
+    }
+
+    public double ZoomFactor
+    {
+        get => (double)GetValue(ZoomFactorProperty);
+        set => SetValue(ZoomFactorProperty, value);
     }
 
     #endregion Properties
@@ -331,6 +392,45 @@ public class DieCanvas : Control
         }
     }
 
+    protected virtual void OnOffsetChanged(Point oldOffset, Point newOffset)
+    {
+        OffsetChanged?.Invoke(this, new OffsetChangedEventArgs(oldOffset, newOffset));
+    }
+
+    protected virtual void OnScaleChanged(double oldScale, double newScale)
+    {
+        ScaleChanged?.Invoke(this, new ScaleChangedEventArgs(oldScale, newScale));
+    }
+
+    private static void OnOffsetChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is DieCanvas canvas &&
+            canvas.GetValue(XOffsetProperty) is double x &&
+            canvas.GetValue(YOffsetProperty) is double y)
+        {
+            var oldOffset = new Point(
+                e.Property == XOffsetProperty ? (double)e.OldValue : x,
+                e.Property == YOffsetProperty ? (double)e.OldValue : y
+            );
+
+            var newOffset = new Point(
+                e.Property == XOffsetProperty ? (double)e.NewValue : x,
+                e.Property == YOffsetProperty ? (double)e.NewValue : y
+            );
+
+            canvas.OnOffsetChanged(oldOffset, newOffset);
+        }
+    }
+
+    private static void OnScaleValueChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is DieCanvas canvas)
+        {
+            canvas.OnScaleChanged(
+                (double)e.OldValue,
+                (double)e.NewValue);
+        }
+    }
     private static void OnSelectedShapeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var dieCanvas = (DieCanvas)d;
@@ -368,13 +468,11 @@ public class DieCanvas : Control
     {
         if (d is DieCanvas canvas)
         {
-            // 先移除舊集合的事件處理
             if (e.OldValue is ObservableCollection<DieShape> oldShapes)
             {
                 oldShapes.CollectionChanged -= canvas.Shapes_CollectionChanged;
             }
 
-            // 設定新集合並添加事件處理
             if (e.NewValue is ObservableCollection<DieShape> newShapes)
             {
                 canvas._shapeManager.Shapes = newShapes;
@@ -404,7 +502,6 @@ public class DieCanvas : Control
 
     private bool CanDeleteSelected()
     {
-        // 確保有選中的形狀且該形狀存在於集合中
         return SelectedShape != null && Shapes?.Contains(SelectedShape) == true;
     }
 
@@ -412,10 +509,8 @@ public class DieCanvas : Control
 
     private void ClearAllSelections()
     {
-        // 清除選中的形狀
         SelectedShape = null;
 
-        // 清除所有形狀的選中狀態
         if (Shapes != null)
         {
             foreach (var shape in Shapes)
@@ -424,7 +519,6 @@ public class DieCanvas : Control
             }
         }
 
-        // 強制更新 AdornerLayer
         if (_contentCanvas != null)
         {
             var adornerLayer = AdornerLayer.GetAdornerLayer(_contentCanvas);
@@ -511,7 +605,6 @@ public class DieCanvas : Control
         PanEndCommand = new RelayCommand<MouseButtonEventArgs>(OnPanEnd);
         ZoomCommand = new RelayCommand<MouseWheelEventArgs>(OnZoom);
 
-        // 監聽 Shapes 集合的變化
         if (Shapes != null)
         {
             Shapes.CollectionChanged += Shapes_CollectionChanged;
@@ -524,7 +617,6 @@ public class DieCanvas : Control
         InputBindings.Add(new KeyBinding(CancelCommand, Key.Escape, ModifierKeys.None));
         InputBindings.Add(new KeyBinding(SelectAllCommand, Key.A, ModifierKeys.Control));
 
-        // 方向鍵綁定
         InputBindings.Add(new KeyBinding(MoveCommand, Key.Left, ModifierKeys.None)
         { CommandParameter = "Left" });
         InputBindings.Add(new KeyBinding(MoveCommand, Key.Right, ModifierKeys.None)
@@ -572,14 +664,20 @@ public class DieCanvas : Control
 
     private void OnZoom(MouseWheelEventArgs e)
     {
-        if (e.Delta > 0)
-        {
-            ScaleValue = Math.Min(ScaleValue + 0.5, 10);
-        }
-        else
-        {
-            ScaleValue = Math.Max(ScaleValue - 0.5, 1);
-        }
+        e.Handled = true;
+
+        var mousePosition = e.GetPosition(_drawingCanvas);
+        var zoomFactor = e.Delta > 0 ? 1.2 : 1 / 1.2;
+        var newScale = Math.Clamp(ScaleValue * zoomFactor, 0.1, 10.0);
+
+        if (Math.Abs(newScale - ScaleValue) < 0.001) return;
+
+        var oldX = XOffset;
+        var oldY = YOffset;
+
+        XOffset = mousePosition.X - (mousePosition.X - oldX) * newScale / ScaleValue;
+        YOffset = mousePosition.Y - (mousePosition.Y - oldY) * newScale / ScaleValue;
+        ScaleValue = newScale;
     }
 
     private void SelectAll()
@@ -594,10 +692,8 @@ public class DieCanvas : Control
 
     private void Shapes_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
     {
-        // 當形狀被刪除時，重新評估命令狀態
         CommandManager.InvalidateRequerySuggested();
 
-        // 如果當前選中的形狀被刪除，清除選擇
         if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Remove)
         {
             if (e.OldItems?.Contains(SelectedShape) == true)
@@ -611,7 +707,6 @@ public class DieCanvas : Control
     {
         try
         {
-            // 在開始繪製前清除所有選中狀態
             ClearAllSelections();
 
             _currentMode = EditMode.Drawing;

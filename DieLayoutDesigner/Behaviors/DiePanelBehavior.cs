@@ -10,8 +10,28 @@ public class DiePanelBehavior : Behavior<Canvas>
 
     #region Fields
 
-    public static readonly DependencyProperty MouseDownCommandProperty =
+    public static readonly DependencyProperty ContextMenuCommandProperty =
         DependencyProperty.Register(
+            nameof(ContextMenuCommand),
+            typeof(ICommand),
+            typeof(DiePanelBehavior));
+
+    public static readonly DependencyProperty MaxScaleProperty =
+            DependencyProperty.Register(
+            nameof(MaxScale),
+            typeof(double),
+            typeof(DiePanelBehavior),
+            new PropertyMetadata(10.0));
+
+    public static readonly DependencyProperty MinScaleProperty =
+        DependencyProperty.Register(
+            nameof(MinScale),
+            typeof(double),
+            typeof(DiePanelBehavior),
+            new PropertyMetadata(0.1));
+
+    public static readonly DependencyProperty MouseDownCommandProperty =
+                DependencyProperty.Register(
             nameof(MouseDownCommand),
             typeof(ICommand),
             typeof(DiePanelBehavior));
@@ -73,14 +93,41 @@ public class DiePanelBehavior : Behavior<Canvas>
                 FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
                 OnTransformChanged));
 
+    public static readonly DependencyProperty ZoomFactorProperty =
+        DependencyProperty.Register(
+            nameof(ZoomFactor),
+            typeof(double),
+            typeof(DiePanelBehavior),
+            new PropertyMetadata(1.2));
+
+
     private ICoordinateSystem? _coordinateSystem;
+
     private bool _isPanning;
+
     private Point _lastPanPosition;
 
     #endregion Fields
 
     #region Properties
 
+    public ICommand ContextMenuCommand
+    {
+        get => (ICommand)GetValue(ContextMenuCommandProperty);
+        set => SetValue(ContextMenuCommandProperty, value);
+    }
+
+    public double MaxScale
+    {
+        get => (double)GetValue(MaxScaleProperty);
+        set => SetValue(MaxScaleProperty, value);
+    }
+
+    public double MinScale
+    {
+        get => (double)GetValue(MinScaleProperty);
+        set => SetValue(MinScaleProperty, value);
+    }
     public ICommand MouseDownCommand
     {
         get => (ICommand)GetValue(MouseDownCommandProperty);
@@ -135,6 +182,12 @@ public class DiePanelBehavior : Behavior<Canvas>
         set => SetValue(YOffsetProperty, value);
     }
 
+    public double ZoomFactor
+    {
+        get => (double)GetValue(ZoomFactorProperty);
+        set => SetValue(ZoomFactorProperty, value);
+    }
+
     #endregion Properties
 
     #region Methods
@@ -167,6 +220,7 @@ public class DiePanelBehavior : Behavior<Canvas>
         AssociatedObject.PreviewMouseDown += OnPreviewMouseDown;
         AssociatedObject.PreviewMouseUp += OnPreviewMouseUp;
         AssociatedObject.PreviewMouseMove += OnPreviewPanMove;
+        AssociatedObject.PreviewMouseRightButtonUp += OnPreviewMouseRightButtonUp;
     }
 
     private void DetachEventHandlers()
@@ -178,6 +232,7 @@ public class DiePanelBehavior : Behavior<Canvas>
         AssociatedObject.PreviewMouseDown -= OnPreviewMouseDown;
         AssociatedObject.PreviewMouseUp -= OnPreviewMouseUp;
         AssociatedObject.PreviewMouseMove -= OnPreviewPanMove;
+        AssociatedObject.PreviewMouseRightButtonUp -= OnPreviewMouseRightButtonUp;
     }
 
     private Point GetTransformedPosition(MouseEventArgs e)
@@ -190,9 +245,10 @@ public class DiePanelBehavior : Behavior<Canvas>
     {
         _coordinateSystem = new ScaledCoordinateSystem(ScaleValue, new Point(XOffset, YOffset));
     }
+
     private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (_isPanning) 
+        if (_isPanning)
             return;
 
         if (MouseDownCommand?.CanExecute(null) == true)
@@ -205,7 +261,7 @@ public class DiePanelBehavior : Behavior<Canvas>
 
     private void OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (_isPanning) 
+        if (_isPanning)
             return;
 
         if (MouseUpCommand?.CanExecute(null) == true)
@@ -218,7 +274,7 @@ public class DiePanelBehavior : Behavior<Canvas>
 
     private void OnMouseMove(object sender, MouseEventArgs e)
     {
-        if (_isPanning) 
+        if (_isPanning)
             return;
 
         if (MouseMoveCommand?.CanExecute(null) == true)
@@ -228,10 +284,9 @@ public class DiePanelBehavior : Behavior<Canvas>
         }
     }
 
-    // 處理平移相關的滑鼠事件
     private void OnPreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.MiddleButton != MouseButtonState.Pressed) 
+        if (e.MiddleButton != MouseButtonState.Pressed)
             return;
 
         _lastPanPosition = e.GetPosition(AssociatedObject);
@@ -243,6 +298,15 @@ public class DiePanelBehavior : Behavior<Canvas>
         e.Handled = true;
     }
 
+    private void OnPreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (ContextMenuCommand?.CanExecute(null) == true)
+        {
+            var position = GetTransformedPosition(e);
+            ContextMenuCommand.Execute(position);
+            e.Handled = true;
+        }
+    }
     private void OnPreviewMouseUp(object sender, MouseButtonEventArgs e)
     {
         if (!_isPanning || e.MiddleButton != MouseButtonState.Released) 
@@ -261,8 +325,8 @@ public class DiePanelBehavior : Behavior<Canvas>
         e.Handled = true;
 
         var mousePosition = e.GetPosition(AssociatedObject);
-        var zoomFactor = e.Delta > 0 ? 1.2 : 1 / 1.2;
-        var newScale = Math.Clamp(ScaleValue * zoomFactor, 0.1, 10.0);
+        ZoomFactor = e.Delta > 0 ? 1.2 : 1 / 1.2;
+        var newScale = Math.Clamp(ScaleValue * ZoomFactor, MinScale, MaxScale);
 
         if (Math.Abs(newScale - ScaleValue) < 0.001) return;
 
@@ -298,4 +362,5 @@ public class DiePanelBehavior : Behavior<Canvas>
     }
 
     #endregion Methods
+
 }
