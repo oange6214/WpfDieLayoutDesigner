@@ -1,4 +1,5 @@
-﻿using Microsoft.Xaml.Behaviors;
+﻿using DieLayoutDesigner.Controls;
+using Microsoft.Xaml.Behaviors;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -16,19 +17,33 @@ public class DiePanelBehavior : Behavior<Canvas>
             typeof(ICommand),
             typeof(DiePanelBehavior));
 
+    public static readonly DependencyProperty EnablePanProperty =
+        DependencyProperty.Register(
+            nameof(EnablePan),
+            typeof(bool),
+            typeof(DiePanelBehavior),
+            new PropertyMetadata(true));
+
+    public static readonly DependencyProperty EnableZoomProperty =
+        DependencyProperty.Register(
+            nameof(EnableZoom),
+            typeof(bool),
+            typeof(DiePanelBehavior),
+            new PropertyMetadata(true));
+
     public static readonly DependencyProperty MaxScaleProperty =
             DependencyProperty.Register(
             nameof(MaxScale),
             typeof(double),
             typeof(DiePanelBehavior),
-            new PropertyMetadata(10.0));
+            new PropertyMetadata(10.0d));
 
     public static readonly DependencyProperty MinScaleProperty =
         DependencyProperty.Register(
             nameof(MinScale),
             typeof(double),
             typeof(DiePanelBehavior),
-            new PropertyMetadata(0.1));
+            new PropertyMetadata(1.0d));
 
     public static readonly DependencyProperty MouseDownCommandProperty =
                 DependencyProperty.Register(
@@ -60,6 +75,12 @@ public class DiePanelBehavior : Behavior<Canvas>
             typeof(ICommand),
             typeof(DiePanelBehavior));
 
+    public static readonly DependencyProperty PanningSpeedProperty =
+                                            DependencyProperty.Register(
+        nameof(PanningSpeed),
+        typeof(double),
+        typeof(DiePanelBehavior),
+        new PropertyMetadata(1.0d));
     public static readonly DependencyProperty PanStartCommandProperty =
         DependencyProperty.Register(
             nameof(PanStartCommand),
@@ -71,7 +92,7 @@ public class DiePanelBehavior : Behavior<Canvas>
             nameof(ScaleValue),
             typeof(double),
             typeof(DiePanelBehavior),
-            new FrameworkPropertyMetadata(1.0,
+            new FrameworkPropertyMetadata(1.0d,
                 FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
                 OnTransformChanged));
 
@@ -80,7 +101,7 @@ public class DiePanelBehavior : Behavior<Canvas>
             nameof(XOffset),
             typeof(double),
             typeof(DiePanelBehavior),
-            new FrameworkPropertyMetadata(0.0,
+            new FrameworkPropertyMetadata(0.0d,
                 FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
                 OnTransformChanged));
 
@@ -89,7 +110,7 @@ public class DiePanelBehavior : Behavior<Canvas>
             nameof(YOffset),
             typeof(double),
             typeof(DiePanelBehavior),
-            new FrameworkPropertyMetadata(0.0,
+            new FrameworkPropertyMetadata(0.0d,
                 FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
                 OnTransformChanged));
 
@@ -98,8 +119,14 @@ public class DiePanelBehavior : Behavior<Canvas>
             nameof(ZoomFactor),
             typeof(double),
             typeof(DiePanelBehavior),
-            new PropertyMetadata(1.2));
+            new PropertyMetadata(1.2d));
 
+    public static readonly DependencyProperty ZoomModeProperty =
+                            DependencyProperty.Register(
+            nameof(ZoomMode),
+            typeof(ZoomMode),
+            typeof(DiePanelBehavior),
+            new PropertyMetadata(ZoomMode.MouseCenter));
 
     private ICoordinateSystem? _coordinateSystem;
 
@@ -117,6 +144,18 @@ public class DiePanelBehavior : Behavior<Canvas>
         set => SetValue(ContextMenuCommandProperty, value);
     }
 
+    public bool EnablePan
+    {
+        get => (bool)GetValue(EnablePanProperty);
+        set => SetValue(EnablePanProperty, value);
+    }
+
+    public bool EnableZoom
+    {
+        get => (bool)GetValue(EnableZoomProperty);
+        set => SetValue(EnableZoomProperty, value);
+    }
+
     public double MaxScale
     {
         get => (double)GetValue(MaxScaleProperty);
@@ -128,6 +167,7 @@ public class DiePanelBehavior : Behavior<Canvas>
         get => (double)GetValue(MinScaleProperty);
         set => SetValue(MinScaleProperty, value);
     }
+
     public ICommand MouseDownCommand
     {
         get => (ICommand)GetValue(MouseDownCommandProperty);
@@ -158,6 +198,11 @@ public class DiePanelBehavior : Behavior<Canvas>
         set => SetValue(PanningCommandProperty, value);
     }
 
+    public double PanningSpeed
+    {
+        get => (double)GetValue(PanningSpeedProperty);
+        set => SetValue(PanningSpeedProperty, value);
+    }
     public ICommand PanStartCommand
     {
         get => (ICommand)GetValue(PanStartCommandProperty);
@@ -186,6 +231,12 @@ public class DiePanelBehavior : Behavior<Canvas>
     {
         get => (double)GetValue(ZoomFactorProperty);
         set => SetValue(ZoomFactorProperty, value);
+    }
+
+    public ZoomMode ZoomMode
+    {
+        get => (ZoomMode)GetValue(ZoomModeProperty);
+        set => SetValue(ZoomModeProperty, value);
     }
 
     #endregion Properties
@@ -307,9 +358,10 @@ public class DiePanelBehavior : Behavior<Canvas>
             e.Handled = true;
         }
     }
+
     private void OnPreviewMouseUp(object sender, MouseButtonEventArgs e)
     {
-        if (!_isPanning || e.MiddleButton != MouseButtonState.Released) 
+        if (!_isPanning || e.MiddleButton != MouseButtonState.Released)
             return;
 
         _isPanning = false;
@@ -322,25 +374,34 @@ public class DiePanelBehavior : Behavior<Canvas>
 
     private void OnPreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
+        if (!EnableZoom)
+            return;
+
         e.Handled = true;
-
         var mousePosition = e.GetPosition(AssociatedObject);
-        ZoomFactor = e.Delta > 0 ? 1.2 : 1 / 1.2;
-        var newScale = Math.Clamp(ScaleValue * ZoomFactor, MinScale, MaxScale);
 
-        if (Math.Abs(newScale - ScaleValue) < 0.001) return;
-
-        UpdateZoom(mousePosition, newScale);
+        switch (ZoomMode)
+        {
+            case ZoomMode.MouseCenter:
+                ZoomAtPoint(mousePosition, e.Delta > 0);
+                break;
+            case ZoomMode.CanvasCenter:
+                ZoomAtPoint(new Point(AssociatedObject.ActualWidth / 2,
+                    AssociatedObject.ActualHeight / 2), e.Delta > 0);
+                break;
+        }
     }
 
     private void OnPreviewPanMove(object sender, MouseEventArgs e)
     {
-        if (!_isPanning)
+        if (!EnablePan || !_isPanning)
             return;
 
         var currentPosition = e.GetPosition(AssociatedObject);
         var delta = currentPosition - _lastPanPosition;
         _lastPanPosition = currentPosition;
+
+        delta *= PanningSpeed;
 
         PanningCommand?.Execute(delta);
         e.Handled = true;
@@ -359,6 +420,17 @@ public class DiePanelBehavior : Behavior<Canvas>
         XOffset = mousePosition.X - (mousePosition.X - oldX) * newScale / ScaleValue;
         YOffset = mousePosition.Y - (mousePosition.Y - oldY) * newScale / ScaleValue;
         ScaleValue = newScale;
+    }
+
+    private void ZoomAtPoint(Point zoomCenter, bool zoomIn)
+    {
+        var factor = zoomIn ? ZoomFactor : 1 / ZoomFactor;
+        var newScale = Math.Clamp(ScaleValue * factor, MinScale, MaxScale);
+
+        if (Math.Abs(newScale - ScaleValue) < 0.001)
+            return;
+
+        UpdateZoom(zoomCenter, newScale);
     }
 
     #endregion Methods

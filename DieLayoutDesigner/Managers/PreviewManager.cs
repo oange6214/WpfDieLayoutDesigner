@@ -7,22 +7,19 @@ namespace DieLayoutDesigner.Managers;
 
 public class PreviewManager : IDisposable
 {
+    #region Fields
+
     private PreviewAdorner? _currentPreview;
     private bool _disposed;
 
-    public void StartPreview(Canvas canvas, Point startPoint, double scaleValue)
-    {
-        var contentControl = canvas.FindName("PART_ShapesContainer") as ItemsControl;
-        if (contentControl == null) return;
+    #endregion Fields
 
-        var adornerLayer = AdornerLayer.GetAdornerLayer(canvas);
-        _currentPreview = new PreviewAdorner(contentControl, startPoint, scaleValue);
-        adornerLayer?.Add(_currentPreview);
-    }
+    #region Methods
 
-    public void UpdatePreview(Point currentPoint)
+    public void Dispose()
     {
-        _currentPreview?.UpdatePosition(currentPoint);
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     public void EndPreview(Canvas contentControl)
@@ -37,12 +34,22 @@ public class PreviewManager : IDisposable
         }
     }
 
-    public void Dispose()
+    public void StartPreview(Canvas canvas, Point startPoint, double scaleValue)
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        var contentControl = canvas.FindName("PART_ShapesContainer") as ItemsControl;
+
+        if (contentControl == null) 
+            return;
+
+        var adornerLayer = AdornerLayer.GetAdornerLayer(canvas);
+        _currentPreview = new PreviewAdorner(contentControl, startPoint, scaleValue);
+        adornerLayer?.Add(_currentPreview);
     }
 
+    public void UpdatePreview(Point currentPoint)
+    {
+        _currentPreview?.UpdatePosition(currentPoint);
+    }
     protected virtual void Dispose(bool disposing)
     {
         if (!_disposed)
@@ -54,4 +61,6 @@ public class PreviewManager : IDisposable
             _disposed = true;
         }
     }
+
+    #endregion Methods
 }

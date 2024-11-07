@@ -1,29 +1,21 @@
 ﻿using System.Windows;
-using System.Windows.Documents;
 using System.Windows.Media;
 
 namespace DieLayoutDesigner.Adorners;
 
-public class PreviewAdorner : Adorner
+public class PreviewAdorner : ScaleAwareAdorner
 {
+
     #region Constructors
 
     public PreviewAdorner(UIElement adornedElement, Point startPoint, double scaleValue)
-        : base(adornedElement)
+         : base(adornedElement, scaleValue)
     {
-        _scaleValue = scaleValue;
-
-        _startPoint = new Point(
+        _newStartPoint = new Point(
             startPoint.X / _scaleValue,
             startPoint.Y / _scaleValue
         );
-        _currentPoint = _startPoint;
-
-        _fillBrush = new SolidColorBrush(Colors.Blue) { Opacity = 0.3 };
-        _strokePen = new Pen(Brushes.Black, 1 / _scaleValue)
-        {
-            DashStyle = new DashStyle([2 / _scaleValue, 2 / _scaleValue], 0)
-        };
+        _currentPoint = _newStartPoint;
 
         IsHitTestVisible = false;
     }
@@ -32,11 +24,8 @@ public class PreviewAdorner : Adorner
 
     #region Fields
 
-    private readonly Brush _fillBrush;
-    private readonly double _scaleValue;
-    private readonly Pen _strokePen;
     private Point _currentPoint;
-    private Point _startPoint;
+    private Point _newStartPoint;
 
     #endregion Fields
 
@@ -54,15 +43,19 @@ public class PreviewAdorner : Adorner
     protected override void OnRender(DrawingContext drawingContext)
     {
         var rect = new Rect(
-            Math.Min(_startPoint.X, _currentPoint.X),
-            Math.Min(_startPoint.Y, _currentPoint.Y),
-            Math.Abs(_currentPoint.X - _startPoint.X),
-            Math.Abs(_currentPoint.Y - _startPoint.Y));
+            Math.Min(_newStartPoint.X, _currentPoint.X),
+            Math.Min(_newStartPoint.Y, _currentPoint.Y),
+            Math.Abs(_currentPoint.X - _newStartPoint.X),
+            Math.Abs(_currentPoint.Y - _newStartPoint.Y));
+
+        var fillBrush = new SolidColorBrush(Colors.Blue) { Opacity = 0.3 };
+        var pen = new Pen();
 
         drawingContext.PushTransform(new ScaleTransform(_scaleValue, _scaleValue));
-        drawingContext.DrawRectangle(_fillBrush, _strokePen, rect);
+        drawingContext.DrawRectangle(fillBrush, pen, rect);
         drawingContext.Pop();
     }
 
     #endregion Methods
+
 }

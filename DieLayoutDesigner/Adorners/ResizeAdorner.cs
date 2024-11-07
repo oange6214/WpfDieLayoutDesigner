@@ -1,18 +1,18 @@
 ﻿using DieLayoutDesigner.Models;
 using System.Windows;
 using System.Windows.Controls.Primitives;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
 namespace DieLayoutDesigner.Adorners;
 
-public class ResizeAdorner : Adorner
+public class ResizeAdorner : ScaleAwareAdorner
 {
     #region Constructors
 
-    public ResizeAdorner(Rectangle adornerElement) : base(adornerElement)
+    public ResizeAdorner(Rectangle adornerElement, double scaleValue)
+           : base(adornerElement, scaleValue)
     {
         _adornerElement = adornerElement;
         _visualChildren = new VisualCollection(this);
@@ -23,6 +23,8 @@ public class ResizeAdorner : Adorner
 
     #region Fields
 
+    private const double _minSize = 1.0;
+    private const double _baseThumbSize = 2.0;
     private readonly Rectangle _adornerElement;
     private readonly List<Thumb> _thumbs = new();
     private readonly VisualCollection _visualChildren;
@@ -40,12 +42,21 @@ public class ResizeAdorner : Adorner
     protected override Size ArrangeOverride(Size finalSize)
     {
         var rect = new Rect(finalSize);
+        var scaledThumbSize = GetScaledThumbSize(_baseThumbSize);
 
         foreach (var thumb in _thumbs)
         {
             var index = _thumbs.IndexOf(thumb);
             var position = GetThumbPosition(index, rect);
-            thumb.Arrange(new Rect(position.X - 4, position.Y - 4, 8, 8));
+
+            thumb.Width = scaledThumbSize;
+            thumb.Height = scaledThumbSize;
+
+            thumb.Arrange(new Rect(
+                position.X - scaledThumbSize / 2,
+                position.Y - scaledThumbSize / 2,
+                scaledThumbSize,
+                scaledThumbSize));
         }
 
         return finalSize;
@@ -63,33 +74,39 @@ public class ResizeAdorner : Adorner
             ("BottomRight", Cursors.SizeNWSE)
         };
 
+        var scaledThumbSize = GetScaledThumbSize(_baseThumbSize);
+
         foreach (var (position, cursor) in positions)
         {
             var thumb = new Thumb
             {
-                Style = Application.Current.Resources["ModernResizeThumbStyle"] as Style,
+                Width = scaledThumbSize,
+                Height = scaledThumbSize,
+                Style = Application.Current.Resources["ResizeThumbStyle"] as Style,
                 Cursor = cursor
             };
+
             thumb.DragDelta += (s, e) => OnThumbDragDelta(position, e);
             _thumbs.Add(thumb);
             _visualChildren.Add(thumb);
         }
     }
+
     private Point GetThumbPosition(int index, Rect rect)
     {
         return index switch
         {
-            0 => new Point(rect.Left, rect.Top), // TopLeft
-            1 => new Point(rect.Right, rect.Top), // TopRight
-            2 => new Point(rect.Left, rect.Bottom), // BottomLeft
-            3 => new Point(rect.Right, rect.Bottom), // BottomRight
+            0 => new Point(rect.Left, rect.Top),
+            1 => new Point(rect.Right, rect.Top),
+            2 => new Point(rect.Left, rect.Bottom),
+            3 => new Point(rect.Right, rect.Bottom),
             _ => new Point()
         };
     }
 
     private void OnThumbDragDelta(string position, DragDeltaEventArgs e)
     {
-        if (_adornerElement.DataContext is not DieShape shape) 
+        if (_adornerElement.DataContext is not DieShape shape)
             return;
 
         var deltaX = e.HorizontalChange;
@@ -97,40 +114,61 @@ public class ResizeAdorner : Adorner
         var topLeft = shape.TopLeft;
         var size = shape.DieSize;
 
+        var newSize = size;
+        var newTopLeft = topLeft;
+
         switch (position)
         {
             case "TopLeft":
-                shape.TopLeft = new Point(
-                    topLeft.X + deltaX,
-                    topLeft.Y + deltaY);
-                shape.DieSize = new Size(
-                    Math.Max(20, size.Width - deltaX),
-                    Math.Max(20, size.Height - deltaY));
+                newSize = new Size(
+                    Math.Max(_minSize, size.Width - deltaX),
+                    Math.Max(_minSize, size.Height - deltaY)
+                );
+
+                newTopLeft = new Point(
+                    topLeft.X + (size.Width - newSize.Width),
+                    topLeft.Y + (size.Height - newSize.Height)
+                );
                 break;
 
             case "TopRight":
-                shape.TopLeft = new Point(
+                newSize = new Size(
+                    Math.Max(_minSize, size.Width + deltaX),
+                    Math.Max(_minSize, size.Height - deltaY)
+                );
+
+                newTopLeft = new Point(
                     topLeft.X,
-                    topLeft.Y + deltaY);
-                shape.DieSize = new Size(
-                    Math.Max(20, size.Width + deltaX),
-                    Math.Max(20, size.Height - deltaY));
+                    topLeft.Y + (size.Height - newSize.Height)
+                );
                 break;
 
             case "BottomLeft":
-                shape.TopLeft = new Point(
-                    topLeft.X + deltaX,
-                    topLeft.Y);
-                shape.DieSize = new Size(
-                    Math.Max(20, size.Width - deltaX),
-                    Math.Max(20, size.Height + deltaY));
+                newSize = new Size(
+                    Math.Max(_minSize, size.Width - deltaX),
+                    Math.Max(_minSize, size.Height + deltaY)
+                );
+
+                newTopLeft = new Point(
+                    topLeft.X + (size.Width - newSize.Width),
+                    topLeft.Y
+                );
                 break;
 
             case "BottomRight":
-                shape.DieSize = new Size(
-                    Math.Max(20, size.Width + deltaX),
-                    Math.Max(20, size.Height + deltaY));
+                newSize = new Size(
+                    Math.Max(_minSize, size.Width + deltaX),
+                    Math.Max(_minSize, size.Height + deltaY)
+                );
+
+                newTopLeft = topLeft;
                 break;
+        }
+
+        if (newSize != size)
+        {
+            shape.DieSize = newSize;
+            shape.TopLeft = newTopLeft;
         }
     }
 

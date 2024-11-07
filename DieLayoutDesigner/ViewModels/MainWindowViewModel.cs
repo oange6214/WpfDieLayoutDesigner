@@ -1,26 +1,50 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using DieLayoutDesigner.Controls;
 using DieLayoutDesigner.Models;
 using System.Collections.ObjectModel;
-
 
 namespace DieLayoutDesigner.ViewModels;
 
 public class MainWindowViewModel : ObservableObject
 {
+    #region Constructors
+
+    public MainWindowViewModel()
+    {
+        ScaleValue = 1;
+        DieWidth = DieMapConverter.MicronsToPixels(100) / ScaleValue;
+        DieHeight = DieMapConverter.MicronsToPixels(100) / ScaleValue;
+        XOffset = 400 - DieWidth / 2;
+        YOffset = 250 - DieHeight / 2;
+    }
+
+    #endregion Constructors
 
     #region Fields
 
-    private double _scaleValue = 1;
+    private double _dieHeight;
+    private double _dieWidth;
+    private double _scaleValue;
     private DieShape? _selectedShape;
     private ObservableCollection<DieShape> _shapes = [];
-    private double _xDiePitch = 100;
-    private double _xOffset = 350;
-    private double _yDiePitch = 100;
-    private double _yOffset = 200;
+    private double _xOffset;
+    private double _yOffset;
 
     #endregion Fields
 
     #region Properties
+
+    public double DieHeight
+    {
+        get => _dieHeight;
+        set => SetProperty(ref _dieHeight, value);
+    }
+
+    public double DieWidth
+    {
+        get => _dieWidth;
+        set => SetProperty(ref _dieWidth, value);
+    }
 
     public double ScaleValue
     {
@@ -39,25 +63,11 @@ public class MainWindowViewModel : ObservableObject
         get => _shapes;
         set => SetProperty(ref _shapes, value);
     }
-
-    public double XDiePitch
-    {
-        get => _xDiePitch;
-        set => SetProperty(ref _xDiePitch, value);
-    }
-
     public double XOffset
     {
         get => _xOffset;
         set => SetProperty(ref _xOffset, value);
     }
-
-    public double YDiePitch
-    {
-        get => _yDiePitch;
-        set => SetProperty(ref _yDiePitch, value);
-    }
-
     public double YOffset
     {
         get => _yOffset;
@@ -65,4 +75,5 @@ public class MainWindowViewModel : ObservableObject
     }
 
     #endregion Properties
+
 }

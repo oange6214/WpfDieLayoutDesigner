@@ -2,7 +2,6 @@
 
 namespace DieLayoutDesigner.MvvmToolKit.Input;
 
-
 public class RelayCommand : ICommand
 {
     private readonly Action _execute;

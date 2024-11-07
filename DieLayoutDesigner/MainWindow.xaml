@@ -4,7 +4,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="clr-namespace:DieLayoutDesigner.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:DieLayoutDesigner"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="clr-namespace:DieLayoutDesigner.ViewModels"
     Title="Dual Canvas"
@@ -122,13 +121,16 @@
                         Width="800"
                         Height="500"
                         Background="Transparent"
-                        ScaleValue="{Binding ScaleValue}"
+                        DieHeight="{Binding DieHeight}"
+                        DieWidth="{Binding DieWidth}"
+                        MaxScale="10.0"
+                        MinScale="1.0"
+                        ScaleValue="{Binding ScaleValue, UpdateSourceTrigger=PropertyChanged}"
                         SelectedShape="{Binding SelectedShape, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                         Shapes="{Binding Shapes}"
-                        XDiePitch="{Binding XDiePitch}"
                         XOffset="{Binding XOffset}"
-                        YDiePitch="{Binding YDiePitch}"
-                        YOffset="{Binding YOffset}" />
+                        YOffset="{Binding YOffset}"
+                        ZoomFactor="1.2" />
                 </DockPanel>
             </TabItem>
 
@@ -162,5 +164,4 @@
             </TabItem>
         </TabControl>
     </Grid>
-
 </Window>

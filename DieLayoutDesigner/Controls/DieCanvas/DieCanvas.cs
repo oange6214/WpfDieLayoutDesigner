@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace DieLayoutDesigner.Controls;
 
@@ -59,8 +60,22 @@ public class DieCanvas : Control
             typeof(ICommand),
             typeof(DieCanvas));
 
-    public static readonly DependencyProperty DrawingCommandProperty =
+    public static readonly DependencyProperty DieHeightProperty =
         DependencyProperty.Register(
+            nameof(DieHeight),
+            typeof(double),
+            typeof(DieCanvas),
+            new PropertyMetadata(0.0d));
+
+    public static readonly DependencyProperty DieWidthProperty =
+        DependencyProperty.Register(
+            nameof(DieWidth),
+            typeof(double),
+            typeof(DieCanvas),
+            new PropertyMetadata(0.0d));
+
+    public static readonly DependencyProperty DrawingCommandProperty =
+                DependencyProperty.Register(
             nameof(DrawingCommand),
             typeof(ICommand),
             typeof(DieCanvas));
@@ -71,19 +86,33 @@ public class DieCanvas : Control
             typeof(ICommand),
             typeof(DieCanvas));
 
+    public static readonly DependencyProperty GridColorProperty =
+        DependencyProperty.Register(
+            nameof(GridColor),
+            typeof(Color),
+            typeof(DieCanvas),
+            new PropertyMetadata(Colors.Gray));
+
+    public static readonly DependencyProperty GridVisibleProperty =
+        DependencyProperty.Register(
+            nameof(GridVisible),
+            typeof(bool),
+            typeof(DieCanvas),
+            new PropertyMetadata(true));
+
     public static readonly DependencyProperty MaxScaleProperty =
         DependencyProperty.Register(
             nameof(MaxScale),
             typeof(double),
             typeof(DieCanvas),
-            new PropertyMetadata(10.0));
+            new PropertyMetadata(10.0d));
 
     public static readonly DependencyProperty MinScaleProperty =
-     DependencyProperty.Register(
-         nameof(MinScale),
-         typeof(double),
-         typeof(DieCanvas),
-         new PropertyMetadata(0.1));
+         DependencyProperty.Register(
+             nameof(MinScale),
+             typeof(double),
+             typeof(DieCanvas),
+             new PropertyMetadata(1.0d));
 
     public static readonly DependencyProperty MoveCommandProperty =
         DependencyProperty.Register(
@@ -114,7 +143,7 @@ public class DieCanvas : Control
             nameof(ScaleValue),
             typeof(double),
             typeof(DieCanvas),
-            new PropertyMetadata(1.0));
+            new PropertyMetadata(1.0d));
 
     public static readonly DependencyProperty SelectAllCommandProperty =
         DependencyProperty.Register(
@@ -132,8 +161,15 @@ public class DieCanvas : Control
                 FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
                 OnSelectedShapeChanged));
 
-    public static readonly DependencyProperty SelectShapeCommandProperty =
+    public static readonly DependencyProperty SelectionModeProperty =
         DependencyProperty.Register(
+            nameof(SelectionMode),
+            typeof(DieSelectionMode),
+            typeof(DieCanvas),
+            new PropertyMetadata(DieSelectionMode.Single));
+
+    public static readonly DependencyProperty SelectShapeCommandProperty =
+            DependencyProperty.Register(
             nameof(SelectShapeCommand),
             typeof(ICommand),
             typeof(DieCanvas));
@@ -145,8 +181,15 @@ public class DieCanvas : Control
             typeof(DieCanvas),
             new PropertyMetadata(null, OnShapesChanged));
 
-    public static readonly DependencyProperty StartDrawingCommandProperty =
+    public static readonly DependencyProperty ShowCoordinatesProperty =
         DependencyProperty.Register(
+            nameof(ShowCoordinates),
+            typeof(bool),
+            typeof(DieCanvas),
+            new PropertyMetadata(true));
+
+    public static readonly DependencyProperty StartDrawingCommandProperty =
+            DependencyProperty.Register(
             nameof(StartDrawingCommand),
             typeof(ICommand),
             typeof(DieCanvas));
@@ -156,35 +199,21 @@ public class DieCanvas : Control
             nameof(StatusText),
             typeof(string),
             typeof(DieCanvas),
-            new PropertyMetadata("點擊空白處開始繪製，或點擊圖形進行編輯"));
-
-    public static readonly DependencyProperty XDiePitchProperty =
-        DependencyProperty.Register(
-            nameof(XDiePitch),
-            typeof(double),
-            typeof(DieCanvas),
-            new PropertyMetadata(0d));
-
+            new PropertyMetadata("Click on an empty space to start drawing, or click on the graphic to edit it"));
+    
     public static readonly DependencyProperty XOffsetProperty =
             DependencyProperty.Register(
             nameof(XOffset),
             typeof(double),
             typeof(DieCanvas),
-            new PropertyMetadata(0d));
-
-    public static readonly DependencyProperty YDiePitchProperty =
-        DependencyProperty.Register(
-            nameof(YDiePitch),
-            typeof(double),
-            typeof(DieCanvas),
-            new PropertyMetadata(0d));
+            new PropertyMetadata(0.0d, OnOffsetChanged));
 
     public static readonly DependencyProperty YOffsetProperty =
             DependencyProperty.Register(
             nameof(YOffset),
             typeof(double),
             typeof(DieCanvas),
-            new PropertyMetadata(0d));
+            new PropertyMetadata(0.0d, OnOffsetChanged));
 
     public static readonly DependencyProperty ZoomCommandProperty =
         DependencyProperty.Register(
@@ -197,23 +226,28 @@ public class DieCanvas : Control
             nameof(ZoomFactor),
             typeof(double),
             typeof(DieCanvas),
-            new PropertyMetadata(1.2));
+            new PropertyMetadata(1.2d));
 
     private readonly PreviewManager _previewManager;
 
+    private readonly List<Point> _selectedDies = new();
     private readonly ShapeManager _shapeManager;
 
-    private ItemsControl? _contentCanvas;
-
     private EditMode _currentMode;
-
-    private Canvas? _drawingCanvas;
-
+    private bool _isRegionSelecting;
+    private Point? _regionEndDie;
+    private Point _regionStartDie;
+    private ItemsControl? _shapesContainer;
     private Point _startPoint;
+    private Canvas? _workArea;
 
     #endregion Fields
 
     #region Events
+
+    public event EventHandler<DiePositionEventArgs>? DiePositionChanged;
+
+    public event EventHandler<DieSelectionEventArgs>? DieSelectionChanged;
 
     public event EventHandler<OffsetChangedEventArgs>? OffsetChanged;
 
@@ -247,6 +281,18 @@ public class DieCanvas : Control
         private set => SetValue(DeleteCommandProperty, value);
     }
 
+    public double DieHeight
+    {
+        get => (double)GetValue(DieHeightProperty);
+        set => SetValue(DieHeightProperty, value);
+    }
+
+    public double DieWidth
+    {
+        get => (double)GetValue(DieWidthProperty);
+        set => SetValue(DieWidthProperty, value);
+    }
+
     public ICommand DrawingCommand
     {
         get => (ICommand)GetValue(DrawingCommandProperty);
@@ -257,6 +303,18 @@ public class DieCanvas : Control
     {
         get => (ICommand)GetValue(EndDrawingCommandProperty);
         private set => SetValue(EndDrawingCommandProperty, value);
+    }
+
+    public Color GridColor
+    {
+        get => (Color)GetValue(GridColorProperty);
+        set => SetValue(GridColorProperty, value);
+    }
+
+    public bool GridVisible
+    {
+        get => (bool)GetValue(GridVisibleProperty);
+        set => SetValue(GridVisibleProperty, value);
     }
 
     public double MaxScale
@@ -313,6 +371,12 @@ public class DieCanvas : Control
         set => SetValue(SelectedShapeProperty, value);
     }
 
+    public DieSelectionMode SelectionMode
+    {
+        get => (DieSelectionMode)GetValue(SelectionModeProperty);
+        set => SetValue(SelectionModeProperty, value);
+    }
+
     public ICommand SelectShapeCommand
     {
         get => (ICommand)GetValue(SelectShapeCommandProperty);
@@ -323,6 +387,12 @@ public class DieCanvas : Control
     {
         get => (ObservableCollection<DieShape>)GetValue(ShapesProperty);
         set => SetValue(ShapesProperty, value);
+    }
+
+    public bool ShowCoordinates
+    {
+        get => (bool)GetValue(ShowCoordinatesProperty);
+        set => SetValue(ShowCoordinatesProperty, value);
     }
 
     public ICommand StartDrawingCommand
@@ -336,25 +406,11 @@ public class DieCanvas : Control
         get => (string)GetValue(StatusTextProperty);
         set => SetValue(StatusTextProperty, value);
     }
-
-    public double XDiePitch
-    {
-        get => (double)GetValue(XDiePitchProperty);
-        set => SetValue(XDiePitchProperty, value);
-    }
-
     public double XOffset
     {
         get => (double)GetValue(XOffsetProperty);
         set => SetValue(XOffsetProperty, value);
     }
-
-    public double YDiePitch
-    {
-        get => (double)GetValue(YDiePitchProperty);
-        set => SetValue(YDiePitchProperty, value);
-    }
-
     public double YOffset
     {
         get => (double)GetValue(YOffsetProperty);
@@ -380,8 +436,8 @@ public class DieCanvas : Control
     public override void OnApplyTemplate()
     {
         base.OnApplyTemplate();
-        _drawingCanvas = GetTemplateChild("PART_WorkArea") as Canvas;
-        _contentCanvas = GetTemplateChild("PART_ShapesContainer") as ItemsControl;
+        _workArea = GetTemplateChild("PART_WorkArea") as Canvas;
+        _shapesContainer = GetTemplateChild("PART_ShapesContainer") as ItemsControl;
     }
 
     public void SelectShape(DieShape? shape)
@@ -392,9 +448,86 @@ public class DieCanvas : Control
         }
     }
 
+    protected virtual void OnDieSelectionChanged(DieSelectionEventArgs e)
+    {
+        DieSelectionChanged?.Invoke(this, e);
+    }
+
+    protected override void OnMouseDown(MouseButtonEventArgs e)
+    {
+        base.OnMouseDown(e);
+
+        if (e.LeftButton == MouseButtonState.Pressed)
+        {
+            if (SelectionMode == DieSelectionMode.Region)
+            {
+                StartRegionSelection(e.GetPosition(this));
+            }
+            else
+            {
+                HandleDieSelection(e.GetPosition(this));
+            }
+        }
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);
+
+        if (e.LeftButton == MouseButtonState.Pressed && SelectionMode == DieSelectionMode.Region)
+        {
+            UpdateRegionSelection(e.GetPosition(this));
+        }
+    }
+
+    protected override void OnMouseUp(MouseButtonEventArgs e)
+    {
+        base.OnMouseUp(e);
+
+        if (SelectionMode == DieSelectionMode.Region)
+        {
+            EndRegionSelection();
+        }
+    }
+
     protected virtual void OnOffsetChanged(Point oldOffset, Point newOffset)
     {
         OffsetChanged?.Invoke(this, new OffsetChangedEventArgs(oldOffset, newOffset));
+    }
+
+    protected override void OnRender(DrawingContext drawingContext)
+    {
+        base.OnRender(drawingContext);
+
+        // 繪製已選取的 Die
+        foreach (var die in _selectedDies)
+        {
+            var rect = new Rect(
+                die.X * DieWidth,
+                die.Y * DieHeight,
+                DieWidth,
+                DieHeight);
+
+            drawingContext.DrawRectangle(
+                new SolidColorBrush(Color.FromArgb(64, 0, 122, 204)),
+                new Pen(Brushes.DodgerBlue, 1),
+                rect);
+        }
+
+        // 繪製區域選取框
+        if (_isRegionSelecting && _regionEndDie.HasValue)
+        {
+            var rect = new Rect(
+                _regionStartDie.X * DieWidth,
+                _regionStartDie.Y * DieHeight,
+                (_regionEndDie.Value.X - _regionStartDie.X + 1) * DieWidth,
+                (_regionEndDie.Value.Y - _regionStartDie.Y + 1) * DieHeight);
+
+            drawingContext.DrawRectangle(
+                null,
+                new Pen(Brushes.DodgerBlue, 1) { DashStyle = DashStyles.Dash },
+                rect);
+        }
     }
 
     protected virtual void OnScaleChanged(double oldScale, double newScale)
@@ -431,6 +564,7 @@ public class DieCanvas : Control
                 (double)e.NewValue);
         }
     }
+
     private static void OnSelectedShapeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var dieCanvas = (DieCanvas)d;
@@ -487,7 +621,7 @@ public class DieCanvas : Control
         {
             try
             {
-                _previewManager.EndPreview(_drawingCanvas);
+                _previewManager.EndPreview(_workArea);
             }
             catch (Exception ex)
             {
@@ -497,7 +631,6 @@ public class DieCanvas : Control
 
         _currentMode = EditMode.None;
         ClearAllSelections();
-        UpdateStatusText();
     }
 
     private bool CanDeleteSelected()
@@ -519,12 +652,12 @@ public class DieCanvas : Control
             }
         }
 
-        if (_contentCanvas != null)
+        if (_shapesContainer != null)
         {
-            var adornerLayer = AdornerLayer.GetAdornerLayer(_contentCanvas);
+            var adornerLayer = AdornerLayer.GetAdornerLayer(_shapesContainer);
             if (adornerLayer != null)
             {
-                var adorners = adornerLayer.GetAdorners(_contentCanvas);
+                var adorners = adornerLayer.GetAdorners(_shapesContainer);
                 if (adorners != null)
                 {
                     foreach (var adorner in adorners)
@@ -571,7 +704,7 @@ public class DieCanvas : Control
                 double width = Math.Abs(endPoint.X - _startPoint.X);
                 double height = Math.Abs(endPoint.Y - _startPoint.Y);
 
-                _previewManager.EndPreview(_drawingCanvas);
+                _previewManager.EndPreview(_workArea);
 
                 if (width > 5 && height > 5)
                 {
@@ -579,7 +712,6 @@ public class DieCanvas : Control
                 }
 
                 _currentMode = EditMode.None;
-                UpdateStatusText();
             }
             catch (Exception ex)
             {
@@ -587,6 +719,100 @@ public class DieCanvas : Control
                 _currentMode = EditMode.None;
             }
         }
+    }
+
+    private void EndRegionSelection()
+    {
+        _isRegionSelecting = false;
+        _regionEndDie = null;
+    }
+
+    private Point GetDiePosition(Point screenPoint)
+    {
+        // 考慮縮放和偏移的座標轉換
+        var transformedPoint = new Point(
+            (screenPoint.X - XOffset) / ScaleValue,
+            (screenPoint.Y - YOffset) / ScaleValue
+        );
+        return DieUnit.ToMicrons(transformedPoint);
+    }
+
+    private IEnumerable<Point> GetDieRegion(Point start, Point end)
+    {
+        int minX = (int)Math.Min(start.X, end.X);
+        int maxX = (int)Math.Max(start.X, end.X);
+        int minY = (int)Math.Min(start.Y, end.Y);
+        int maxY = (int)Math.Max(start.Y, end.Y);
+
+        for (int x = minX; x <= maxX; x++)
+        {
+            for (int y = minY; y <= maxY; y++)
+            {
+                yield return new Point(x, y);
+            }
+        }
+    }
+
+    private void HandleDieSelection(Point position)
+    {
+        var diePosition = DieUnit.ToMicrons(position);
+        var dieX = Math.Floor(diePosition.X / DieWidth);
+        var dieY = Math.Floor(diePosition.Y / DieHeight);
+        var dieIndex = new Point(dieX, dieY);
+
+        var localOffset = new Point(
+            diePosition.X % DieWidth,
+            diePosition.Y % DieHeight);
+
+        bool isSelected;
+
+        switch (SelectionMode)
+        {
+            case DieSelectionMode.Single:
+                _selectedDies.Clear();
+                _selectedDies.Add(dieIndex);
+                isSelected = true;
+                break;
+
+            case DieSelectionMode.Multiple:
+                if (_selectedDies.Contains(dieIndex))
+                {
+                    _selectedDies.Remove(dieIndex);
+                    isSelected = false;
+                }
+                else
+                {
+                    _selectedDies.Add(dieIndex);
+                    isSelected = true;
+                }
+                break;
+
+            case DieSelectionMode.Region:
+                if (_isRegionSelecting && _regionEndDie.HasValue)
+                {
+                    var region = GetDieRegion(_regionStartDie, _regionEndDie.Value);
+                    _selectedDies.Clear();
+                    _selectedDies.AddRange(region);
+                    isSelected = true;
+                }
+                else
+                {
+                    return;
+                }
+                break;
+
+            default:
+                return;
+        }
+
+        OnDieSelectionChanged(new DieSelectionEventArgs(
+            dieIndex,
+            localOffset,
+            SelectionMode,
+            isSelected,
+            _selectedDies.ToList()));
+
+        InvalidateVisual();
     }
 
     private void InitializeCommands()
@@ -610,7 +836,6 @@ public class DieCanvas : Control
             Shapes.CollectionChanged += Shapes_CollectionChanged;
         }
     }
-
     private void InitializeInputBindings()
     {
         InputBindings.Add(new KeyBinding(DeleteCommand, Key.Delete, ModifierKeys.None));
@@ -666,7 +891,7 @@ public class DieCanvas : Control
     {
         e.Handled = true;
 
-        var mousePosition = e.GetPosition(_drawingCanvas);
+        var mousePosition = e.GetPosition(_workArea);
         var zoomFactor = e.Delta > 0 ? 1.2 : 1 / 1.2;
         var newScale = Math.Clamp(ScaleValue * zoomFactor, 0.1, 10.0);
 
@@ -712,12 +937,11 @@ public class DieCanvas : Control
             _currentMode = EditMode.Drawing;
             _startPoint = point;
 
-            if (_drawingCanvas != null)
+            if (_workArea != null)
             {
-                _previewManager.StartPreview(_drawingCanvas, point, ScaleValue);
+                _previewManager.StartPreview(_workArea, point, ScaleValue);
             }
 
-            UpdateStatusText();
         }
         catch (Exception ex)
         {
@@ -726,16 +950,52 @@ public class DieCanvas : Control
         }
     }
 
-    private void UpdateStatusText()
+    private void StartRegionSelection(Point position)
     {
-        StatusText = _currentMode switch
-        {
-            EditMode.None => "點擊空白處開始繪製，或點擊圖形進行編輯",
-            EditMode.Drawing => "拖曳以繪製圖形",
-            EditMode.Moving => "拖曳以移動圖形",
-            EditMode.Resizing => "拖曳以調整大小",
-            _ => StatusText
-        };
+        var diePosition = DieUnit.ToMicrons(position);
+        _isRegionSelecting = true;
+        _regionStartDie = new Point(
+            Math.Floor(diePosition.X / DieWidth),
+            Math.Floor(diePosition.Y / DieHeight));
+        _regionEndDie = null;
+    }
+
+    private void UpdateDiePosition(Point position)
+    {
+        var diePosition = DieUnit.ToMicrons(position);
+        var dieX = Math.Floor(diePosition.X / DieWidth);
+        var dieY = Math.Floor(diePosition.Y / DieHeight);
+
+        DiePositionChanged?.Invoke(this, new DiePositionEventArgs(
+            new Point(dieX, dieY),
+            new Point(diePosition.X % DieWidth, diePosition.Y % DieHeight)));
+
+        if (ShowCoordinates)
+            UpdateStatusText(diePosition);
+    }
+
+    private void UpdateRegionSelection(Point position)
+    {
+        if (!_isRegionSelecting) return;
+
+        var diePosition = DieUnit.ToMicrons(position);
+        _regionEndDie = new Point(
+            Math.Floor(diePosition.X / DieWidth),
+            Math.Floor(diePosition.Y / DieHeight));
+
+        HandleDieSelection(position);
+    }
+    private void UpdateStatusText(Point position)
+    {
+        var diePosition = GetDiePosition(position);
+
+        int dieX = (int)Math.Floor(diePosition.X / DieWidth);
+        int dieY = (int)Math.Floor(diePosition.Y / DieHeight);
+
+        double relativeDieX = diePosition.X % DieWidth;
+        double relativeDieY = diePosition.Y % DieHeight;
+
+        StatusText = $"Die({dieX}, {dieY}), Offset({relativeDieX:F2}μm, {relativeDieY:F2}μm)";
     }
 
     #endregion Methods

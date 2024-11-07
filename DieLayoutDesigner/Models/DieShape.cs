@@ -6,7 +6,6 @@ namespace DieLayoutDesigner.Models;
 
 public class DieShape : ObservableObject
 {
-
     #region Constructors
 
     public DieShape()

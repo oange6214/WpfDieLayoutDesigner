@@ -1,18 +1,15 @@
 ﻿using DieLayoutDesigner.Adorners;
-using DieLayoutDesigner.Controls;
 using DieLayoutDesigner.Models;
 using Microsoft.Xaml.Behaviors;
 using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Shapes;
 
 namespace DieLayoutDesigner.Behaviors;
 
 public class ShapeEditBehavior : Behavior<Rectangle>
 {
-
     #region Fields
 
     public static readonly DependencyProperty IsSelectedProperty =
@@ -21,6 +18,20 @@ public class ShapeEditBehavior : Behavior<Rectangle>
             typeof(bool),
             typeof(ShapeEditBehavior),
             new PropertyMetadata(false, OnIsSelectedChanged));
+
+    public static readonly DependencyProperty ScaleValueProperty =
+        DependencyProperty.Register(
+            nameof(ScaleValue),
+            typeof(double),
+            typeof(ShapeEditBehavior),
+            new PropertyMetadata(1.0d, OnScaleValueChanged));
+
+    public static readonly DependencyProperty SelectedShapeProperty =
+    DependencyProperty.Register(
+        nameof(SelectedShape),
+        typeof(DieShape),
+        typeof(ShapeEditBehavior),
+        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
     private AdornerLayer? _adornerLayer;
     private bool _isDragging;
@@ -36,6 +47,18 @@ public class ShapeEditBehavior : Behavior<Rectangle>
     {
         get => (bool)GetValue(IsSelectedProperty);
         set => SetValue(IsSelectedProperty, value);
+    }
+
+    public double ScaleValue
+    {
+        get => (double)GetValue(ScaleValueProperty);
+        set => SetValue(ScaleValueProperty, value);
+    }
+
+    public DieShape SelectedShape
+    {
+        get => (DieShape)GetValue(SelectedShapeProperty);
+        set => SetValue(SelectedShapeProperty, value);
     }
 
     #endregion Properties
@@ -70,26 +93,6 @@ public class ShapeEditBehavior : Behavior<Rectangle>
             behavior.UpdateAdorners();
         }
     }
-    
-    private DieCanvas? FindParentDieCanvas()
-    {
-        DependencyObject? current = AssociatedObject;
-        while (current != null)
-        {
-            if (current is DieCanvas canvas)
-                return canvas;
-
-            if (current is FrameworkElement fe)
-            {
-                current = fe.Parent ?? VisualTreeHelper.GetParent(fe);
-            }
-            else
-            {
-                current = VisualTreeHelper.GetParent(current);
-            }
-        }
-        return null;
-    }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
@@ -110,11 +113,7 @@ public class ShapeEditBehavior : Behavior<Rectangle>
             _startPoint = e.GetPosition(AssociatedObject.Parent as UIElement);
             AssociatedObject.CaptureMouse();
 
-            var dieCanvas = FindParentDieCanvas();
-            if (dieCanvas != null)
-            {
-                dieCanvas.SelectedShape = shape;
-            }
+            SelectedShape = shape;
         }
     }
 
@@ -131,15 +130,12 @@ public class ShapeEditBehavior : Behavior<Rectangle>
     {
         if (_isDragging && AssociatedObject.DataContext is DieShape shape)
         {
-            var dieCanvas = FindParentDieCanvas();
-            if (dieCanvas == null) return;
-
             var currentPoint = e.GetPosition(AssociatedObject.Parent as UIElement);
             var delta = currentPoint - _startPoint;
 
             var adjustedDelta = new Vector(
-                delta.X / dieCanvas.ScaleValue,
-                delta.Y / dieCanvas.ScaleValue
+                delta.X / ScaleValue,
+                delta.Y / ScaleValue
             );
 
             shape.TopLeft = new Point(
@@ -202,9 +198,9 @@ public class ShapeEditBehavior : Behavior<Rectangle>
                 }
             }
 
-            _selectionAdorner = new SelectionAdorner(AssociatedObject);
-            _resizeAdorner = new ResizeAdorner(AssociatedObject);
-            
+            _selectionAdorner = new SelectionAdorner(AssociatedObject, ScaleValue);
+            _resizeAdorner = new ResizeAdorner(AssociatedObject, ScaleValue);
+
             _adornerLayer.Add(_selectionAdorner);
             _adornerLayer.Add(_resizeAdorner);
         }
@@ -212,6 +208,14 @@ public class ShapeEditBehavior : Behavior<Rectangle>
         _adornerLayer?.Update();
     }
 
-    #endregion Methods
+    private static void OnScaleValueChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is ShapeEditBehavior behavior)
+        {
+            // Update adorner's scale when ScaleValue changes
+            behavior.UpdateAdorners();
+        }
+    }
 
+    #endregion Methods
 }

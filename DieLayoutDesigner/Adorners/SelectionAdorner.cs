@@ -1,29 +1,32 @@
 ﻿using System.Windows;
-using System.Windows.Documents;
 using System.Windows.Media;
 
 namespace DieLayoutDesigner.Adorners;
 
-public class SelectionAdorner : Adorner
+public class SelectionAdorner : ScaleAwareAdorner
 {
-    #region Constructors
+    private const double _baseThicknessSize = 1.0;
 
-    public SelectionAdorner(UIElement adornedElement) : base(adornedElement)
+    public SelectionAdorner(UIElement adornedElement, double scaleValue)
+        : base(adornedElement, scaleValue)
     {
         IsHitTestVisible = false;
     }
 
-    #endregion Constructors
-
-    #region Methods
-
     protected override void OnRender(DrawingContext drawingContext)
     {
         var rect = new Rect(AdornedElement.RenderSize);
-        var pen = new Pen(Brushes.Blue, 2);
-        pen.DashStyle = new DashStyle(new double[] { 2, 2 }, 0);
-        drawingContext.DrawRectangle(null, pen, rect);
-    }
 
-    #endregion Methods
+        var thickness = GetScaledThickness(_baseThicknessSize);
+
+        var pen = new Pen(new SolidColorBrush(Color.FromRgb(18, 143, 234)), thickness);
+
+        drawingContext.PushTransform(new ScaleTransform(_scaleValue, _scaleValue));
+        drawingContext.DrawRectangle(null, pen, new Rect(
+            rect.X / _scaleValue,
+            rect.Y / _scaleValue,
+            rect.Width / _scaleValue,
+            rect.Height / _scaleValue));
+        drawingContext.Pop();
+    }
 }

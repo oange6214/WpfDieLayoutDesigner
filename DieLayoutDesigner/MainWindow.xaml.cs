@@ -1,6 +1,5 @@
-﻿using System.Windows;
-using DieLayoutDesigner.Managers;
-using DieLayoutDesigner.ViewModels;
+﻿using DieLayoutDesigner.ViewModels;
+using System.Windows;
 
 namespace DieLayoutDesigner;
 
